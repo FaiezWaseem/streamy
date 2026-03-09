@@ -1,0 +1,23 @@
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Project specific
+db/*.sqlite
+videos/
+thumbnails/
+temp_uploads/
+
+# User uploads (if any other directories are created dynamically)
+*.log
+*.tmp
+
+# Vendor/Dependency directories (good practice to add for future)
+vendor/
+node_modules/
+.env
