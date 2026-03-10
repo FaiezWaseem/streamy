@@ -74,8 +74,8 @@ $isLiked = (bool)$stmt->fetch();
 
                 <!-- Info -->
                 <div class="mt-4">
-                    <h1 class="text-2xl font-bold"><?= htmlspecialchars($video['title']) ?></h1>
-                    <div class="flex items-center justify-between mt-2 text-gray-400 text-sm">
+                    <h1 class="text-2xl font-bold break-words"><?= htmlspecialchars($video['title']) ?></h1>
+                    <div class="flex flex-col md:flex-row md:items-center justify-between mt-2 text-gray-400 text-sm gap-4">
                         <span><?= $video['views'] ?> views • <?= date('M d, Y', strtotime($video['created_at'])) ?></span>
                         <div class="flex items-center space-x-4">
                             <button id="likeBtn" class="flex items-center space-x-2 px-4 py-2 rounded-full <?= $isLiked ? 'bg-white text-black' : 'bg-gray-800 hover:bg-gray-700' ?> transition">
