@@ -58,7 +58,7 @@ $isLiked = (bool)$stmt->fetch();
 
     <?php include 'sidebar.php'; ?>
 
-    <main class="md:ml-64 flex-1 p-4 md:p-10 min-h-screen">
+    <main class="md:ml-64 flex-1 p-4 md:p-10 min-h-screen w-full min-w-0">
         <div class="mb-4 md:hidden">
             <button onclick="toggleSidebar()" class="text-white">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
@@ -68,8 +68,8 @@ $isLiked = (bool)$stmt->fetch();
             <!-- Main Content -->
             <div class="flex-1">
                 <!-- Player -->
-                <div class="aspect-video bg-black rounded-lg overflow-hidden shadow-2xl">
-                    <video id="player" controls autoplay class="w-full h-full" src="stream.php?id=<?= $videoId ?>"></video>
+                <div class="aspect-video bg-black rounded-lg overflow-hidden shadow-2xl w-full">
+                    <video id="player" controls autoplay class="w-full h-full object-contain" src="stream.php?id=<?= $videoId ?>"></video>
                 </div>
 
                 <!-- Info -->
@@ -232,7 +232,7 @@ $isLiked = (bool)$stmt->fetch();
                     })
                 });
             }
-        }, 5000);
+        }, 10000); // Update every 10 seconds
     </script>
 </body>
 </html>

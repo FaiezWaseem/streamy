@@ -2,6 +2,10 @@
 // stream.php
 require_once 'auth.php';
 
+// Close session immediately to prevent blocking other requests (like progress updates)
+// The session is only needed to verify login status initially.
+session_write_close();
+
 if (!isLoggedIn()) {
     http_response_code(403);
     die('Unauthorized');

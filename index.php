@@ -187,6 +187,10 @@ if ($categoryFilter) {
                     <label class="block text-sm mb-1 text-gray-400">Directory Path</label>
                     <input type="text" name="directory" placeholder="/Users/me/Movies" class="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-red-600" required>
                 </div>
+                <div class="flex items-center">
+                    <input type="checkbox" id="move_files" name="move_files" class="w-4 h-4 text-red-600 bg-gray-800 border-gray-700 rounded focus:ring-red-600">
+                    <label for="move_files" class="ml-2 text-sm font-medium text-gray-300">Move files (Copy & Delete)</label>
+                </div>
                 <div class="flex justify-end space-x-3">
                     <button type="button" onclick="document.getElementById('scanModal').classList.add('hidden')" class="px-4 py-2 text-gray-300 hover:text-white transition">Cancel</button>
                     <button type="submit" class="px-4 py-2 bg-red-600 rounded hover:bg-red-700 text-white font-bold transition">Scan</button>

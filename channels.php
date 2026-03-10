@@ -22,25 +22,9 @@ $categories = $stmt->fetchAll();
     <script src="https://cdn.tailwindcss.com"></script>
     <style>body { background-color: #141414; color: #fff; }</style>
 </head>
-<body class="font-sans antialiased flex">
+<body class="font-sans antialiased flex bg-black text-white">
     <!-- Sidebar -->
-    <aside class="w-64 bg-black h-screen fixed top-0 left-0 border-r border-gray-800 flex flex-col">
-        <div class="p-6 text-3xl font-bold text-red-600 tracking-wider">STREAMY</div>
-        <nav class="flex-1 px-4 space-y-2">
-            <a href="index.php" class="block px-4 py-3 rounded text-gray-400 hover:text-white hover:bg-gray-800">Home</a>
-            <a href="channels.php" class="block px-4 py-3 rounded bg-gray-800 text-white font-medium">Channels</a>
-            <a href="profile.php" class="block px-4 py-3 rounded text-gray-400 hover:text-white hover:bg-gray-800">Profile</a>
-        </nav>
-        <div class="p-4 border-t border-gray-800">
-            <div class="flex items-center space-x-3 px-4 py-2">
-                <div class="w-8 h-8 rounded-full bg-red-600 flex items-center justify-center text-sm font-bold">
-                    <?= strtoupper(substr($user['username'], 0, 1)) ?>
-                </div>
-                <span class="text-sm font-medium truncate"><?= htmlspecialchars($user['username']) ?></span>
-            </div>
-            <a href="logout.php" class="block mt-2 px-4 py-2 text-sm text-gray-500 hover:text-white">Sign out</a>
-        </div>
-    </aside>
+    <?php include 'sidebar.php'; ?>
 
     <!-- Main Content -->
     <main class="md:ml-64 flex-1 p-4 md:p-10">
