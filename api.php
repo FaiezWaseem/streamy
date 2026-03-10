@@ -19,6 +19,7 @@ if ($method === 'POST') {
     }
 
     if ($action === 'like') {
+        $videoId = $data['video_id'] ?? 0;
         // Toggle Like
         $stmt = $db->prepare("SELECT id FROM likes WHERE user_id = ? AND video_id = ?");
         $stmt->execute([$userId, $videoId]);
@@ -40,6 +41,7 @@ if ($method === 'POST') {
         echo json_encode(['liked' => $liked, 'count' => $count]);
 
     } elseif ($action === 'comment') {
+        $videoId = $data['video_id'] ?? 0;
         // Add Comment
         $content = trim($data['content'] ?? '');
         if (empty($content)) {
@@ -55,7 +57,7 @@ if ($method === 'POST') {
 } elseif ($method === 'GET') {
     $videoId = $_GET['video_id'] ?? 0;
     
-    if ($action === 'comments') {
+    if ($action === 'get_comments') {
         $stmt = $db->prepare("
             SELECT c.*, u.username, u.avatar 
             FROM comments c 

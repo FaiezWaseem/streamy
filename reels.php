@@ -45,6 +45,38 @@ $videos = $stmt->fetchAll();
         .reel-container { -ms-overflow-style: none; scrollbar-width: none; }
         
         .action-shadow { text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+        
+        /* Bottom Sheet Modal */
+        .bottom-sheet {
+            position: fixed;
+            bottom: -100%;
+            left: 0;
+            right: 0;
+            height: 70vh;
+            background: #1a1a1a;
+            border-top-left-radius: 20px;
+            border-top-right-radius: 20px;
+            transition: bottom 0.3s ease-in-out;
+            z-index: 50;
+            display: flex;
+            flex-direction: column;
+        }
+        .bottom-sheet.open {
+            bottom: 0;
+        }
+        .sheet-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 40;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+        .sheet-overlay.open {
+            opacity: 1;
+            pointer-events: auto;
+        }
     </style>
 </head>
 <body>
@@ -67,6 +99,11 @@ $videos = $stmt->fetchAll();
                     oncontextmenu="return false;"
                 ></video>
 
+                <!-- Time Overlay -->
+                <div class="absolute bottom-36 left-4 z-20 pointer-events-none text-xs text-gray-300 drop-shadow-md">
+                    <span class="current-time">0:00</span> / <span class="duration">0:00</span>
+                </div>
+
                 <!-- Overlay Info -->
                 <div class="absolute bottom-20 left-4 right-16 z-20 pointer-events-none p-4 rounded-lg bg-black/30 backdrop-blur-sm">
                     <h3 class="font-bold text-lg drop-shadow-md text-white"><?= htmlspecialchars($video['title'] ?? '') ?></h3>
@@ -84,7 +121,7 @@ $videos = $stmt->fetchAll();
                     </button>
 
                     <!-- Comment -->
-                    <button class="flex flex-col items-center space-y-1" onclick="location.href='watch.php?id=<?= $video['id'] ?>'">
+                    <button class="flex flex-col items-center space-y-1" onclick="openComments(<?= $video['id'] ?>)">
                         <div class="bg-gray-800/60 p-3 rounded-full backdrop-blur-sm">
                             <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
                         </div>
@@ -109,10 +146,33 @@ $videos = $stmt->fetchAll();
         <?php endforeach; ?>
     </div>
 
+    <div class="sheet-overlay" onclick="closeComments()"></div>
+    <div class="bottom-sheet" id="commentsSheet">
+        <div class="p-4 border-b border-gray-800 flex justify-between items-center bg-gray-900 rounded-t-2xl">
+            <h3 class="font-bold text-lg">Comments</h3>
+            <button onclick="closeComments()" class="text-gray-400 hover:text-white">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <div class="flex-1 overflow-y-auto p-4 space-y-4" id="commentsList">
+            <!-- Comments will load here -->
+            <div class="text-center text-gray-500 mt-10">Loading...</div>
+        </div>
+        <div class="p-4 border-t border-gray-800 bg-gray-900 pb-safe">
+            <form id="reelCommentForm" class="flex gap-2">
+                <input type="text" id="commentInput" placeholder="Add a comment..." class="flex-1 bg-gray-800 border border-gray-700 rounded-full px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-red-600">
+                <button type="submit" class="bg-red-600 text-white rounded-full p-2 hover:bg-red-700 transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+                </button>
+            </form>
+        </div>
+    </div>
+
     <script>
         const container = document.getElementById('reelContainer');
         const videos = document.querySelectorAll('video');
         let pressTimer;
+        let currentVideoId = null;
 
         // Intersection Observer to Auto-Play/Pause
         const observer = new IntersectionObserver((entries) => {
@@ -121,18 +181,102 @@ $videos = $stmt->fetchAll();
                 if (entry.isIntersecting) {
                     video.currentTime = 0;
                     video.play().catch(() => {
-                        // Auto-play blocked, show play icon?
-                        video.muted = true; // Fallback
+                        video.muted = true;
                         video.play();
                     });
+                    
+                    // Start Time Tracking
+                    const timeDisplay = entry.target.querySelector('.current-time');
+                    const durationDisplay = entry.target.querySelector('.duration');
+                    
+                    video.ontimeupdate = () => {
+                        if (timeDisplay) timeDisplay.textContent = formatTime(video.currentTime);
+                        if (durationDisplay && video.duration) durationDisplay.textContent = formatTime(video.duration);
+                    };
                 } else {
                     video.pause();
+                    video.ontimeupdate = null;
                 }
             });
         }, { threshold: 0.6 });
 
+        function formatTime(seconds) {
+            const m = Math.floor(seconds / 60);
+            const s = Math.floor(seconds % 60);
+            return `${m}:${s.toString().padStart(2, '0')}`;
+        }
+
         document.querySelectorAll('.reel-item').forEach(item => {
             observer.observe(item);
+        });
+
+        // Comment Sheet Logic
+        const sheet = document.getElementById('commentsSheet');
+        const overlay = document.querySelector('.sheet-overlay');
+        const commentsList = document.getElementById('commentsList');
+        const commentForm = document.getElementById('reelCommentForm');
+
+        async function openComments(videoId) {
+            currentVideoId = videoId;
+            sheet.classList.add('open');
+            overlay.classList.add('open');
+            
+            // Load Comments
+            commentsList.innerHTML = '<div class="text-center text-gray-500 mt-10">Loading...</div>';
+            try {
+                const res = await fetch(`api.php?action=get_comments&video_id=${videoId}`);
+                const comments = await res.json();
+                
+                if (comments.length === 0) {
+                    commentsList.innerHTML = '<div class="text-center text-gray-500 mt-10">No comments yet. Be the first!</div>';
+                } else {
+                    commentsList.innerHTML = comments.map(c => `
+                        <div class="flex gap-3 mb-4">
+                            <div class="w-8 h-8 rounded-full bg-gray-700 flex-shrink-0 flex items-center justify-center text-xs font-bold">
+                                ${c.username.charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <span class="font-bold text-sm text-gray-300">${c.username}</span>
+                                    <span class="text-xs text-gray-500">${new Date(c.created_at).toLocaleDateString()}</span>
+                                </div>
+                                <p class="text-sm text-white">${c.content}</p>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            } catch (e) {
+                commentsList.innerHTML = '<div class="text-center text-red-500 mt-10">Failed to load comments.</div>';
+            }
+        }
+
+        function closeComments() {
+            sheet.classList.remove('open');
+            overlay.classList.remove('open');
+            currentVideoId = null;
+        }
+
+        commentForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!currentVideoId) return;
+            
+            const input = document.getElementById('commentInput');
+            const content = input.value.trim();
+            if (!content) return;
+
+            try {
+                const res = await fetch('api.php?action=comment', {
+                    method: 'POST',
+                    body: JSON.stringify({ video_id: currentVideoId, content: content })
+                });
+                
+                if (res.ok) {
+                    input.value = '';
+                    openComments(currentVideoId); // Reload comments
+                }
+            } catch (e) {
+                alert('Failed to post comment');
+            }
         });
 
         // Toggle Play/Pause on Tap
