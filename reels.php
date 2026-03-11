@@ -34,11 +34,13 @@ $videos = $stmt->fetchAll();
         }
         video {
             position: absolute;
-            top: 0;
-            left: 0;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%); /* Perfectly center the video */
             width: 100%;
             height: 100%;
-            object-fit: contain; /* Center horizontal videos with letterboxing */
+            object-fit: contain; /* This prevents stretching/cropping */
+            background-color: #000; /* Ensures black bars for horizontal video */
         }
         /* Progress Bar */
         .progress-container {
@@ -111,7 +113,7 @@ $videos = $stmt->fetchAll();
                     src="stream.php?id=<?= $video['id'] ?>" 
                     loop 
                     playsinline
-                    class="w-full h-full object-cover md:object-contain"
+                    class="w-full h-full"
                     onclick="togglePlay(this)"
                     oncontextmenu="return false;"
                 ></video>
