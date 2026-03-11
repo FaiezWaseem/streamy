@@ -20,9 +20,30 @@ if ($video['visibility'] === 'private' && $video['uploader_id'] != $user['id']) 
     die("This video is private.");
 }
 
-// Fetch Related Videos (same category, public only)
-$stmt = $db->prepare("SELECT * FROM videos WHERE category = ? AND id != ? AND visibility = 'public' LIMIT 5");
-$stmt->execute([$video['category'], $videoId]);
+// Fetch Related Videos (Look-alike Algorithm)
+// 1. Content-based: Same category (+10 points)
+// 2. Collaborative: Users who watched this also watched candidate (+5 points per user)
+// 3. Popularity: Views as tie-breaker
+$sql = "
+    SELECT v.*, 
+           (CASE WHEN v.category = :category THEN 10 ELSE 0 END) +
+           (
+               SELECT COUNT(DISTINCT wh2.user_id) 
+               FROM watch_history wh1
+               JOIN watch_history wh2 ON wh1.user_id = wh2.user_id
+               WHERE wh1.video_id = :id 
+               AND wh2.video_id = v.id 
+               AND wh2.video_id != :id
+           ) * 5 as score
+    FROM videos v
+    WHERE v.id != :id 
+    AND v.visibility = 'public'
+    ORDER BY score DESC, v.views DESC
+    LIMIT 10
+";
+
+$stmt = $db->prepare($sql);
+$stmt->execute([':category' => $video['category'], ':id' => $videoId]);
 $related = $stmt->fetchAll();
 
 // Fetch Comments

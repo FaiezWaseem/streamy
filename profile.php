@@ -35,94 +35,109 @@ $myVideos = $stmt->fetchAll();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Profile - Streamy</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <style>body { background-color: #141414; color: #fff; }</style>
+    <style>
+        body { background-color: #0f0f0f; color: #fff; }
+        .glass-panel { background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); }
+        .custom-input { background: #1a1a1a; border: 1px solid #333; transition: border 0.2s; }
+        .custom-input:focus { border-color: #ef4444; outline: none; }
+        .hidden { display: none; }
+    </style>
 </head>
-<body class="font-sans antialiased flex bg-black text-white">
+<body class="font-sans antialiased flex">
     
     <?php include 'sidebar.php'; ?>
 
-    <!-- Main Content -->
-    <main class="md:ml-64 flex-1 p-4 md:p-10 min-h-screen">
-        <div class="flex items-center space-x-4 mb-8">
-            <button onclick="toggleSidebar()" class="md:hidden text-white">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
-            </button>
-            <h1 class="text-3xl font-bold">Profile</h1>
+    <main class="md:ml-64 flex-1 p-4 md:p-8 min-h-screen">
+        <div class="flex items-center justify-between mb-8">
+            <h1 class="text-2xl font-bold tracking-tight">Channel Dashboard</h1>
+            <a href="upload.php" class="bg-red-600 hover:bg-red-700 text-white px-5 py-2 rounded-full text-sm font-bold transition flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                Create
+            </a>
         </div>
         
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
-            <div class="bg-gray-900 p-6 rounded-lg">
-                <h2 class="text-xl font-bold mb-4">Account Information</h2>
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-sm text-gray-400">Username</label>
-                        <div class="text-lg"><?= htmlspecialchars($user['username']) ?></div>
+        <div class="glass-panel rounded-xl overflow-hidden mb-10">
+            <div class="flex flex-col lg:flex-row">
+                
+                <div class="flex-1 p-6 lg:border-r border-white/10">
+                    <h2 class="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-6">Account Details</h2>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                        <div>
+                            <span class="block text-[10px] uppercase text-gray-500 mb-1">Username</span>
+                            <span class="text-sm font-bold text-white"><?= htmlspecialchars($user['username']) ?></span>
+                        </div>
+                        <div>
+                            <span class="block text-[10px] uppercase text-gray-500 mb-1">Email</span>
+                            <span class="text-sm font-bold text-white truncate block"><?= htmlspecialchars($user['email']) ?></span>
+                        </div>
+                        <div>
+                            <span class="block text-[10px] uppercase text-gray-500 mb-1">Joined</span>
+                            <span class="text-sm font-bold text-white"><?= date('M Y', strtotime($user['created_at'])) ?></span>
+                        </div>
                     </div>
-                    <div>
-                        <label class="block text-sm text-gray-400">Email</label>
-                        <div class="text-lg"><?= htmlspecialchars($user['email']) ?></div>
-                    </div>
-                    <div>
-                        <label class="block text-sm text-gray-400">Joined</label>
-                        <div class="text-lg"><?= date('F j, Y', strtotime($user['created_at'])) ?></div>
-                    </div>
-                    <div>
-                        <a href="saved.php" class="text-white hover:text-red-500 text-sm font-bold flex items-center gap-2">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/></svg>
-                            View Saved Videos
+                    <div class="mt-6 pt-5 border-t border-white/5">
+                        <a href="saved.php" class="text-[11px] font-bold text-red-500 hover:text-red-400 flex items-center gap-2 uppercase tracking-tight">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/></svg>
+                            Your Library
                         </a>
                     </div>
                 </div>
-            </div>
 
-            <div class="bg-gray-900 p-6 rounded-lg">
-                <h2 class="text-xl font-bold mb-4">Change Password</h2>
-                <?php if ($error): ?>
-                    <div class="p-3 mb-4 text-sm text-red-500 bg-red-900/20 rounded"><?= htmlspecialchars($error) ?></div>
-                <?php endif; ?>
-                <?php if ($success): ?>
-                    <div class="p-3 mb-4 text-sm text-green-500 bg-green-900/20 rounded"><?= htmlspecialchars($success) ?></div>
-                <?php endif; ?>
-                <form method="post" class="space-y-4">
-                    <input type="hidden" name="change_password" value="1">
-                    <div>
-                        <label class="block text-sm text-gray-400">Current Password</label>
-                        <input type="password" name="current_password" class="w-full p-3 mt-1 bg-gray-800 border border-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-red-600" required>
+                <div class="w-full lg:w-[380px] p-6 bg-white/[0.01]" id="security-box">
+                    <div class="flex items-center justify-between mb-6">
+                        <h2 class="text-[10px] font-black uppercase tracking-widest text-gray-500">Security</h2>
+                        <button onclick="toggleSecurity()" id="edit-pwd-btn" class="text-[10px] font-bold uppercase text-red-500 hover:underline">
+                            Change Password
+                        </button>
                     </div>
-                    <div>
-                        <label class="block text-sm text-gray-400">New Password</label>
-                        <input type="password" name="new_password" class="w-full p-3 mt-1 bg-gray-800 border border-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-red-600" required>
+
+                    <?php if ($error || $success): ?>
+                        <div class="mb-4 text-[11px] font-bold <?= $error ? 'text-red-500' : 'text-green-500' ?> bg-black/40 p-2 rounded border border-white/5">
+                            <?= htmlspecialchars($error ?: $success) ?>
+                        </div>
+                    <?php endif; ?>
+
+                    <form method="post" id="pwd-form" class="space-y-3 <?= ($error || $success) ? '' : 'hidden' ?>">
+                        <input type="hidden" name="change_password" value="1">
+                        <input type="password" name="current_password" placeholder="Current Password" class="custom-input w-full p-2.5 text-xs rounded-md" required>
+                        <div class="flex gap-2">
+                            <input type="password" name="new_password" placeholder="New Password" class="custom-input w-full p-2.5 text-xs rounded-md" required>
+                            <button type="submit" class="bg-white text-black text-[10px] font-black px-4 rounded-md hover:bg-gray-200 uppercase">Save</button>
+                        </div>
+                        <button type="button" onclick="toggleSecurity()" class="text-[10px] text-gray-500 uppercase hover:text-white transition">Cancel</button>
+                    </form>
+
+                    <div id="pwd-status" class="<?= ($error || $success) ? 'hidden' : '' ?> text-[11px] text-gray-500 italic">
+                        Account protected by standard encryption.
                     </div>
-                    <button type="submit" class="px-6 py-2 font-bold text-white bg-red-600 rounded hover:bg-red-700 transition">Update Password</button>
-                </form>
+                </div>
             </div>
         </div>
 
-        <!-- My Videos Section -->
         <div>
-            <h2 class="text-2xl font-bold mb-6">My Videos</h2>
+            <h2 class="text-xl font-bold mb-6">Your Uploads <span class="text-gray-600 text-sm font-normal">(<?= count($myVideos) ?>)</span></h2>
+
             <?php if (empty($myVideos)): ?>
-                <div class="text-gray-500">You haven't uploaded any videos yet.</div>
+                <div class="glass-panel rounded-xl p-12 text-center border-dashed border-2 border-white/5">
+                    <p class="text-gray-500 text-sm">No videos found. Start sharing your content!</p>
+                </div>
             <?php else: ?>
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
                     <?php foreach ($myVideos as $video): ?>
-                        <div class="bg-gray-900 rounded-lg overflow-hidden group">
+                        <div class="glass-panel rounded-xl overflow-hidden group hover:border-white/20 transition duration-300">
                             <a href="watch.php?id=<?= $video['id'] ?>" class="block aspect-video relative">
-                                <img src="<?= htmlspecialchars($video['thumbnail']) ?>" alt="<?= htmlspecialchars($video['title']) ?>" class="w-full h-full object-cover">
+                                <img src="<?= htmlspecialchars($video['thumbnail']) ?>" alt="Thumbnail" class="w-full h-full object-cover">
                                 <?php if ($video['visibility'] === 'private'): ?>
-                                    <div class="absolute top-2 right-2 bg-black/80 text-white text-xs px-2 py-1 rounded flex items-center">
-                                        <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
-                                        Private
-                                    </div>
+                                    <div class="absolute top-2 right-2 bg-black/80 text-[9px] font-black px-2 py-1 rounded-sm uppercase tracking-tighter">Private</div>
                                 <?php endif; ?>
                             </a>
                             <div class="p-4">
-                                <h3 class="font-bold truncate mb-1"><?= htmlspecialchars($video['title']) ?></h3>
-                                <p class="text-xs text-gray-400 mb-4"><?= date('M d, Y', strtotime($video['created_at'])) ?> • <?= $video['views'] ?> views</p>
-                                <div class="flex space-x-2">
-                                    <a href="edit_video.php?id=<?= $video['id'] ?>" class="flex-1 bg-gray-800 hover:bg-gray-700 text-white text-sm font-bold py-2 rounded text-center transition">Edit</a>
-                                    <button onclick="deleteVideo(<?= $video['id'] ?>)" class="bg-red-900/30 hover:bg-red-900/50 text-red-500 hover:text-red-400 p-2 rounded transition">
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                <h3 class="font-bold text-sm truncate mb-1"><?= htmlspecialchars($video['title']) ?></h3>
+                                <p class="text-[11px] text-gray-500 mb-4"><?= number_format($video['views']) ?> views • <?= date('M d', strtotime($video['created_at'])) ?></p>
+                                <div class="flex gap-2">
+                                    <a href="edit_video.php?id=<?= $video['id'] ?>" class="flex-1 bg-white/5 hover:bg-white/10 text-white text-[10px] font-bold py-2 rounded text-center uppercase">Edit</a>
+                                    <button onclick="deleteVideo(<?= $video['id'] ?>)" class="bg-red-500/10 hover:bg-red-500/20 text-red-500 px-3 rounded transition">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                                     </button>
                                 </div>
                             </div>
@@ -134,23 +149,33 @@ $myVideos = $stmt->fetchAll();
     </main>
 
     <script>
+        function toggleSecurity() {
+            const form = document.getElementById('pwd-form');
+            const status = document.getElementById('pwd-status');
+            const btn = document.getElementById('edit-pwd-btn');
+            
+            form.classList.toggle('hidden');
+            status.classList.toggle('hidden');
+            btn.classList.toggle('hidden');
+        }
+
         async function deleteVideo(id) {
-            if (!confirm('Are you sure you want to delete this video? This cannot be undone.')) return;
+            if (!confirm('Permanently delete this video?')) return;
             
             try {
                 const res = await fetch('delete_video.php', {
                     method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({ id: id })
                 });
                 
                 if (res.ok) {
                     location.reload();
                 } else {
-                    const data = await res.json();
-                    alert('Error: ' + (data.error || 'Failed to delete video.'));
+                    alert('Deletion failed.');
                 }
             } catch (err) {
-                alert('Error deleting video.');
+                alert('Connection error.');
             }
         }
     </script>
