@@ -5,16 +5,18 @@
   "display": "standalone",
   "background_color": "#141414",
   "theme_color": "#dc2626",
-  "icons": [
+"icons": [
     {
       "src": "./ST.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     },
     {
       "src": "./ST.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "maskable"
     }
-  ]
+]
 }
