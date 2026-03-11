@@ -53,6 +53,23 @@ if ($method === 'POST') {
         $stmt->execute([$userId, $videoId, $content]);
         
         echo json_encode(['success' => true]);
+    } elseif ($action === 'save') {
+        $videoId = $data['video_id'] ?? 0;
+        // Toggle Save
+        $stmt = $db->prepare("SELECT id FROM saved_videos WHERE user_id = ? AND video_id = ?");
+        $stmt->execute([$userId, $videoId]);
+        
+        if ($stmt->fetch()) {
+            // Unsave
+            $db->prepare("DELETE FROM saved_videos WHERE user_id = ? AND video_id = ?")->execute([$userId, $videoId]);
+            $saved = false;
+        } else {
+            // Save
+            $db->prepare("INSERT INTO saved_videos (user_id, video_id) VALUES (?, ?)")->execute([$userId, $videoId]);
+            $saved = true;
+        }
+        
+        echo json_encode(['saved' => $saved]);
     }
 } elseif ($method === 'GET') {
     $videoId = $_GET['video_id'] ?? 0;
@@ -78,6 +95,11 @@ if ($method === 'POST') {
         $liked = (bool)$stmt->fetch();
         
         echo json_encode(['count' => $count, 'liked' => $liked]);
+    } elseif ($action === 'check_save') {
+        $stmt = $db->prepare("SELECT 1 FROM saved_videos WHERE video_id = ? AND user_id = ?");
+        $stmt->execute([$videoId, $_SESSION['user_id']]);
+        echo json_encode(['saved' => (bool)$stmt->fetch()]);
+        
     } elseif ($action === 'fetch_reels') {
         $offset = $_GET['offset'] ?? 0;
         $limit = 5;

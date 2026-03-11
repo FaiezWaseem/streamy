@@ -82,6 +82,10 @@ $isLiked = (bool)$stmt->fetch();
                                 <svg class="w-5 h-5" fill="<?= $isLiked ? 'currentColor' : 'none' ?>" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5"/></svg>
                                 <span id="likeCount"><?= $likesCount ?></span>
                             </button>
+                            <button id="saveBtn" class="flex items-center space-x-2 px-4 py-2 rounded-full bg-gray-800 hover:bg-gray-700 transition">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/></svg>
+                                <span>Save</span>
+                            </button>
                             <?php if ($user['id'] == $video['uploader_id']): ?>
                                 <button onclick="deleteVideo(<?= $videoId ?>)" class="bg-red-900/50 hover:bg-red-900 text-red-500 hover:text-white px-4 py-2 rounded-full transition flex items-center space-x-2">
                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
@@ -155,6 +159,44 @@ $isLiked = (bool)$stmt->fetch();
     </main>
 
     <script>
+        // Save Functionality
+        const saveBtn = document.getElementById('saveBtn');
+        const saveIcon = saveBtn.querySelector('svg');
+        const saveText = saveBtn.querySelector('span');
+
+        // Check initial state
+        async function checkSaveStatus() {
+            const res = await fetch(`api.php?action=check_save&video_id=<?= $videoId ?>`);
+            const data = await res.json();
+            if (data.saved) {
+                saveBtn.classList.add('bg-white', 'text-black');
+                saveBtn.classList.remove('bg-gray-800', 'text-white');
+                saveIcon.setAttribute('fill', 'currentColor');
+                saveText.textContent = 'Saved';
+            }
+        }
+        checkSaveStatus();
+
+        saveBtn.addEventListener('click', async () => {
+            const res = await fetch('api.php?action=save', {
+                method: 'POST',
+                body: JSON.stringify({ video_id: <?= $videoId ?> })
+            });
+            const data = await res.json();
+            
+            if (data.saved) {
+                saveBtn.classList.add('bg-white', 'text-black');
+                saveBtn.classList.remove('bg-gray-800', 'text-white');
+                saveIcon.setAttribute('fill', 'currentColor');
+                saveText.textContent = 'Saved';
+            } else {
+                saveBtn.classList.add('bg-gray-800', 'text-white');
+                saveBtn.classList.remove('bg-white', 'text-black');
+                saveIcon.setAttribute('fill', 'none');
+                saveText.textContent = 'Save';
+            }
+        });
+
         // Like Functionality
         const likeBtn = document.getElementById('likeBtn');
         const likeCount = document.getElementById('likeCount');

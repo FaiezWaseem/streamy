@@ -153,10 +153,11 @@ $videos = $stmt->fetchAll();
                     </button>
 
                     <!-- Share/More -->
-                    <button class="flex flex-col items-center space-y-1">
+                    <button class="flex flex-col items-center space-y-1" onclick="toggleSave(<?= $video['id'] ?>, this)">
                         <div class="bg-gray-800/60 p-3 rounded-full backdrop-blur-sm">
-                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"/></svg>
+                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/></svg>
                         </div>
+                        <span class="text-xs font-medium drop-shadow-md">Save</span>
                     </button>
                 </div>
 
@@ -325,6 +326,37 @@ $videos = $stmt->fetchAll();
             }
         }
 
+        // Save Interaction
+        async function toggleSave(videoId, btn) {
+            const icon = btn.querySelector('svg');
+            const isSaved = icon.getAttribute('fill') === 'currentColor';
+            
+            if (isSaved) {
+                icon.setAttribute('fill', 'none');
+                icon.classList.remove('text-white'); // Actually white is default, maybe change color?
+                // Keep white for both states but fill it
+            } else {
+                icon.setAttribute('fill', 'currentColor');
+            }
+
+            try {
+                const res = await fetch('api.php?action=save', {
+                    method: 'POST',
+                    body: JSON.stringify({ video_id: videoId })
+                });
+                const data = await res.json();
+                
+                // Sync exact state
+                if (data.saved) {
+                    icon.setAttribute('fill', 'currentColor');
+                } else {
+                    icon.setAttribute('fill', 'none');
+                }
+            } catch (e) {
+                console.error('Save failed');
+            }
+        }
+
         // Infinite Scroll
         container.addEventListener('scroll', () => {
             const scrollPosition = container.scrollTop + container.clientHeight;
@@ -410,10 +442,11 @@ $videos = $stmt->fetchAll();
                     </button>
 
                     <!-- Share/More -->
-                    <button class="flex flex-col items-center space-y-1">
+                    <button class="flex flex-col items-center space-y-1" onclick="toggleSave(${video.id}, this)">
                         <div class="bg-gray-800/60 p-3 rounded-full backdrop-blur-sm">
-                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"/></svg>
+                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/></svg>
                         </div>
+                        <span class="text-xs font-medium drop-shadow-md">Save</span>
                     </button>
                 </div>
 

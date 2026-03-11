@@ -71,6 +71,17 @@ try {
         UNIQUE(user_id, video_id)
     )");
 
+    // Create saved_videos table
+    $db->exec("CREATE TABLE IF NOT EXISTS saved_videos (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        video_id INTEGER NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id),
+        FOREIGN KEY (video_id) REFERENCES videos(id),
+        UNIQUE(user_id, video_id)
+    )");
+
     // Add columns if they don't exist (migrations)
     $columns = $db->query("PRAGMA table_info(videos)")->fetchAll(PDO::FETCH_COLUMN, 1);
     if (!in_array('duration', $columns)) {
