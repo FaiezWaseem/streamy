@@ -117,8 +117,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $webThumbPath = 'thumbnails/' . $thumbName;
                 }
 
-                $stmt = $db->prepare("INSERT INTO videos (title, description, filename, filepath, category, thumbnail, visibility, uploader_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-                if ($stmt->execute([$title, $description, $filename, $targetFilePath, $category, $webThumbPath, $visibility, $user['id']])) {
+                // Generate GIF Preview
+                $gifName = md5($targetFilePath) . '.gif';
+                $gifPath = __DIR__ . '/thumbnails/' . $gifName;
+                if (!is_dir(dirname($gifPath))) mkdir(dirname($gifPath), 0755, true);
+
+                if (!file_exists($gifPath)) {
+                    $cmdGif = "ffmpeg -ss 00:00:05 -t 3 -i " . escapeshellarg($targetFilePath) . " -vf \"fps=10,scale=320:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse\" " . escapeshellarg($gifPath) . " 2>&1";
+                    exec($cmdGif);
+                }
+                $webGifPath = 'thumbnails/' . $gifName;
+
+                $stmt = $db->prepare("INSERT INTO videos (title, description, filename, filepath, category, thumbnail, preview_gif, visibility, uploader_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                if ($stmt->execute([$title, $description, $filename, $targetFilePath, $category, $webThumbPath, $webGifPath, $visibility, $user['id']])) {
                     $success = "Video uploaded successfully!";
                 } else {
                     $error = "Database error.";

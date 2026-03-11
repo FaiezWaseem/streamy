@@ -88,6 +88,9 @@ try {
     if (!in_array('uploader_id', $columns)) {
         $db->exec("ALTER TABLE videos ADD COLUMN uploader_id INTEGER DEFAULT 0");
     }
+    if (!in_array('preview_gif', $columns)) {
+        $db->exec("ALTER TABLE videos ADD COLUMN preview_gif TEXT");
+    }
 
 } catch (PDOException $e) {
     die("Database connection failed: " . $e->getMessage());

@@ -170,9 +170,136 @@ $videos = $stmt->fetchAll();
 
     <script>
         const container = document.getElementById('reelContainer');
-        const videos = document.querySelectorAll('video');
+        // Initial videos loaded by PHP
+        let loadedVideoIds = [<?= implode(',', array_column($videos, 'id')) ?>];
         let pressTimer;
         let currentVideoId = null;
+        let isLoading = false;
+
+        // Infinite Scroll
+        container.addEventListener('scroll', () => {
+            const scrollPosition = container.scrollTop + container.clientHeight;
+            const scrollHeight = container.scrollHeight;
+            
+            // Load more when user is 2 videos away from end
+            if (scrollHeight - scrollPosition < container.clientHeight * 2 && !isLoading) {
+                loadMoreReels();
+            }
+        });
+
+        async function loadMoreReels() {
+            isLoading = true;
+            try {
+                const exclude = loadedVideoIds.join(',');
+                const res = await fetch(`api.php?action=fetch_reels&exclude=${exclude}`);
+                const newVideos = await res.json();
+                
+                if (newVideos.length === 0) {
+                    isLoading = false;
+                    return;
+                }
+
+                newVideos.forEach(video => {
+                    loadedVideoIds.push(video.id);
+                    const reelItem = createReelItem(video);
+                    container.appendChild(reelItem);
+                    observer.observe(reelItem);
+                });
+            } catch (e) {
+                console.error('Failed to load more reels');
+            } finally {
+                isLoading = false;
+            }
+        }
+
+        function createReelItem(video) {
+            const div = document.createElement('div');
+            div.className = 'reel-item';
+            div.dataset.id = video.id;
+            div.innerHTML = `
+                <video 
+                    src="stream.php?id=${video.id}" 
+                    loop 
+                    playsinline
+                    class="w-full h-full object-cover md:object-contain"
+                    onclick="togglePlay(this)"
+                    oncontextmenu="return false;"
+                ></video>
+
+                <!-- Time Overlay -->
+                <div class="absolute bottom-36 left-4 z-20 pointer-events-none text-xs text-gray-300 drop-shadow-md">
+                    <span class="current-time">0:00</span> / <span class="duration">0:00</span>
+                </div>
+
+                <!-- Overlay Info -->
+                <div class="absolute bottom-20 left-4 right-16 z-20 pointer-events-none p-4 rounded-lg bg-black/30 backdrop-blur-sm">
+                    <h3 class="font-bold text-lg drop-shadow-md text-white">${escapeHtml(video.title)}</h3>
+                    <p class="text-sm text-gray-200 drop-shadow-md line-clamp-2">${escapeHtml(video.description || '')}</p>
+                </div>
+
+                <!-- Right Side Actions -->
+                <div class="absolute bottom-10 right-4 z-30 flex flex-col items-center space-y-6">
+                    <!-- Like -->
+                    <button class="flex flex-col items-center space-y-1" onclick="toggleLike(${video.id}, this)">
+                        <div class="bg-gray-800/60 p-3 rounded-full backdrop-blur-sm">
+                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
+                        </div>
+                        <span class="text-xs font-medium drop-shadow-md">Like</span>
+                    </button>
+
+                    <!-- Comment -->
+                    <button class="flex flex-col items-center space-y-1" onclick="openComments(${video.id})">
+                        <div class="bg-gray-800/60 p-3 rounded-full backdrop-blur-sm">
+                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+                        </div>
+                        <span class="text-xs font-medium drop-shadow-md">Comment</span>
+                    </button>
+
+                    <!-- Share/More -->
+                    <button class="flex flex-col items-center space-y-1">
+                        <div class="bg-gray-800/60 p-3 rounded-full backdrop-blur-sm">
+                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"/></svg>
+                        </div>
+                    </button>
+                </div>
+
+                <!-- Play/Pause Icon Overlay (Animated) -->
+                <div class="play-icon absolute inset-0 flex items-center justify-center pointer-events-none opacity-0 transition-opacity duration-200">
+                    <div class="bg-black/50 p-4 rounded-full backdrop-blur-sm">
+                        <svg class="w-12 h-12 text-white" fill="currentColor" viewBox="0 0 20 20"><path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/></svg>
+                    </div>
+                </div>
+            `;
+            
+            // Attach interactions (Long press, etc)
+            const video = div.querySelector('video');
+            attachVideoEvents(video);
+            
+            return div;
+        }
+
+        function attachVideoEvents(video) {
+            video.addEventListener('touchstart', (e) => {
+                pressTimer = setTimeout(() => { video.playbackRate = 2.0; }, 500);
+            });
+            video.addEventListener('touchend', () => {
+                clearTimeout(pressTimer);
+                video.playbackRate = 1.0;
+            });
+            video.addEventListener('mousedown', () => {
+                pressTimer = setTimeout(() => { video.playbackRate = 2.0; }, 500);
+            });
+            video.addEventListener('mouseup', () => {
+                clearTimeout(pressTimer);
+                video.playbackRate = 1.0;
+            });
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
 
         // Intersection Observer to Auto-Play/Pause
         const observer = new IntersectionObserver((entries) => {

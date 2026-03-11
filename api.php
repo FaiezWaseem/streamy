@@ -78,6 +78,28 @@ if ($method === 'POST') {
         $liked = (bool)$stmt->fetch();
         
         echo json_encode(['count' => $count, 'liked' => $liked]);
+    } elseif ($action === 'fetch_reels') {
+        $offset = $_GET['offset'] ?? 0;
+        $limit = 5;
+        
+        // Fetch random videos but try to avoid duplicates if possible (simple random for now)
+        // In a real app, we'd exclude IDs already seen
+        $excludeIds = $_GET['exclude'] ?? '';
+        $excludeArray = array_filter(explode(',', $excludeIds), 'is_numeric');
+        
+        $sql = "SELECT * FROM videos WHERE visibility = 'public'";
+        if (!empty($excludeArray)) {
+            $placeholders = implode(',', array_fill(0, count($excludeArray), '?'));
+            $sql .= " AND id NOT IN ($placeholders)";
+        }
+        $sql .= " ORDER BY RANDOM() LIMIT ?";
+        
+        $params = array_merge($excludeArray, [$limit]);
+        $stmt = $db->prepare($sql);
+        $stmt->execute($params);
+        $videos = $stmt->fetchAll();
+        
+        echo json_encode($videos);
     }
 }
 ?>

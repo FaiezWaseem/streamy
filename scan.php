@@ -89,29 +89,33 @@ class Scanner {
         $thumbName = md5($finalFilePath) . '.jpg';
         $thumbPath = $this->baseDir . '/thumbnails/' . $thumbName;
         
+        // Generate GIF Preview
+        $gifName = md5($finalFilePath) . '.gif';
+        $gifPath = $this->baseDir . '/thumbnails/' . $gifName;
+        
         if (!is_dir(dirname($thumbPath))) {
             mkdir(dirname($thumbPath), 0755, true);
         }
 
         if (!file_exists($thumbPath)) {
-            $cmd = "ffmpeg -i " . escapeshellarg($finalFilePath) . " -ss 00:00:01 -vframes 1 -q:v 2 " . escapeshellarg($thumbPath) . " 2>&1";
+            $cmd = "ffmpeg -i " . escapeshellarg($finalFilePath) . " -ss 00:00:10 -vframes 1 -q:v 2 " . escapeshellarg($thumbPath) . " 2>&1";
             exec($cmd);
         }
         
+        if (!file_exists($gifPath)) {
+            $cmdGif = "ffmpeg -ss 00:00:05 -t 3 -i " . escapeshellarg($finalFilePath) . " -vf \"fps=10,scale=320:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse\" " . escapeshellarg($gifPath) . " 2>&1";
+            exec($cmdGif);
+        }
+        
         $webThumbPath = 'thumbnails/' . $thumbName;
+        $webGifPath = 'thumbnails/' . $gifName;
 
         // Insert into DB
-        // If moved, we insert the new path. If not moved, we insert the original path.
-        // We should check if the new path already exists in DB to avoid duplicates (though rename handled file collision)
-        
-        // For moved files, we might be re-importing something that was already there but deleted?
-        // Just insert.
-        
-        $stmt = $this->db->prepare("INSERT INTO videos (title, filename, filepath, category, thumbnail, visibility, uploader_id) VALUES (?, ?, ?, ?, ?, 'public', ?)");
+        $stmt = $this->db->prepare("INSERT INTO videos (title, filename, filepath, category, thumbnail, preview_gif, visibility, uploader_id) VALUES (?, ?, ?, ?, ?, ?, 'public', ?)");
         // Assign to current user (admin/scanner)
         $userId = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : 0;
         
-        $stmt->execute([$title, $filename, $finalFilePath, $category, $webThumbPath, $userId]);
+        $stmt->execute([$title, $filename, $finalFilePath, $category, $webThumbPath, $webGifPath, $userId]);
     }
 }
 

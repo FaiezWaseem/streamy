@@ -23,7 +23,7 @@ $videosByCategory = [];
 
 if ($categoryFilter) {
     // Single category: Simple query
-    $stmt = $db->prepare("SELECT id, title, thumbnail, category, duration FROM videos WHERE category = ? ORDER BY created_at DESC LIMIT 20");
+    $stmt = $db->prepare("SELECT id, title, thumbnail, preview_gif, category, duration FROM videos WHERE category = ? ORDER BY created_at DESC LIMIT 20");
     $stmt->execute([$categoryFilter]);
     $videos = $stmt->fetchAll();
     if (!empty($videos)) {
@@ -31,16 +31,15 @@ if ($categoryFilter) {
     }
 } else {
     // All categories: Use Window Function to fetch top 10 per category in one query
-    // SQLite 3.25+ supports window functions
     try {
         $sql = "
             WITH RankedVideos AS (
                 SELECT 
-                    id, title, thumbnail, category, duration,
+                    id, title, thumbnail, preview_gif, category, duration,
                     ROW_NUMBER() OVER (PARTITION BY category ORDER BY created_at DESC) as rn
                 FROM videos
             )
-            SELECT id, title, thumbnail, category, duration FROM RankedVideos WHERE rn <= 10;
+            SELECT id, title, thumbnail, preview_gif, category, duration FROM RankedVideos WHERE rn <= 10;
         ";
         $stmt = $db->query($sql);
         $allVideos = $stmt->fetchAll();
@@ -54,13 +53,12 @@ if ($categoryFilter) {
         ksort($videosByCategory);
 
     } catch (PDOException $e) {
-        // Fallback for older SQLite versions (though unlikely on modern MAMP)
-        // Fetch distinct categories then loop (Original slow method, but optimized columns)
+        // Fallback for older SQLite versions
         $stmt = $db->query("SELECT DISTINCT category FROM videos ORDER BY category");
         $categories = $stmt->fetchAll(PDO::FETCH_COLUMN);
         
         foreach ($categories as $cat) {
-            $stmt = $db->prepare("SELECT id, title, thumbnail, category, duration FROM videos WHERE category = ? ORDER BY created_at DESC LIMIT 10");
+            $stmt = $db->prepare("SELECT id, title, thumbnail, preview_gif, category, duration FROM videos WHERE category = ? ORDER BY created_at DESC LIMIT 10");
             $stmt->execute([$cat]);
             $videos = $stmt->fetchAll();
             if (!empty($videos)) {
@@ -160,8 +158,13 @@ if ($categoryFilter) {
                     <div class="flex space-x-4 overflow-x-auto hide-scrollbar pb-4">
                         <?php foreach ($videos as $video): ?>
                             <a href="watch.php?id=<?= $video['id'] ?>" class="flex-none w-64 cursor-pointer video-card relative group rounded-md overflow-hidden bg-gray-900">
-                                <img src="<?= htmlspecialchars($video['thumbnail']) ?>" alt="<?= htmlspecialchars($video['title']) ?>" class="w-full h-36 object-cover opacity-80 group-hover:opacity-100 transition" loading="lazy">
-                                <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
+                                <img src="<?= htmlspecialchars($video['thumbnail']) ?>" 
+                                     data-static="<?= htmlspecialchars($video['thumbnail']) ?>"
+                                     data-gif="<?= !empty($video['preview_gif']) ? htmlspecialchars($video['preview_gif']) : '' ?>"
+                                     onmouseenter="playPreview(this)"
+                                     onmouseleave="stopPreview(this)"
+                                     alt="<?= htmlspecialchars($video['title']) ?>" class="w-full h-36 object-cover opacity-80 group-hover:opacity-100 transition" loading="lazy">
+                                <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition pointer-events-none">
                                     <div class="bg-black/50 rounded-full p-2">
                                         <svg class="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20"><path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/></svg>
                                     </div>
@@ -201,6 +204,20 @@ if ($categoryFilter) {
     </div>
 
     <script>
+        function playPreview(img) {
+            const gif = img.getAttribute('data-gif');
+            if (gif) {
+                img.src = gif;
+            }
+        }
+
+        function stopPreview(img) {
+            const static = img.getAttribute('data-static');
+            if (static) {
+                img.src = static;
+            }
+        }
+
         document.getElementById('scanForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const btn = e.target.querySelector('button[type="submit"]');
