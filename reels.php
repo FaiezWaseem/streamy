@@ -30,15 +30,32 @@ $videos = $stmt->fetchAll();
             width: 100vw; 
             scroll-snap-align: start; 
             position: relative; 
-            display: flex;
-            align-items: center;
-            justify-content: center;
             background: #000;
         }
         video {
-            max-height: 100%;
-            max-width: 100%;
-            object-fit: contain; /* Or cover if you want true full screen crop */
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: contain; /* Center horizontal videos with letterboxing */
+        }
+        /* Progress Bar */
+        .progress-container {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 6px; /* Increased hit area */
+            background: rgba(255,255,255,0.3);
+            z-index: 25;
+            cursor: pointer;
+        }
+        .progress-bar {
+            height: 100%;
+            background: #dc2626;
+            width: 0%;
+            transition: width 0.1s linear;
         }
         /* Hide scrollbar */
         .reel-container::-webkit-scrollbar { display: none; }
@@ -104,6 +121,11 @@ $videos = $stmt->fetchAll();
                     <span class="current-time">0:00</span> / <span class="duration">0:00</span>
                 </div>
 
+                <!-- Progress Bar -->
+                <div class="progress-container cursor-pointer" onclick="event.stopPropagation(); seekByBar(event, this)">
+                    <div class="progress-bar pointer-events-none"></div>
+                </div>
+
                 <!-- Overlay Info -->
                 <div class="absolute bottom-20 left-4 right-16 z-20 pointer-events-none p-4 rounded-lg bg-black/30 backdrop-blur-sm">
                     <h3 class="font-bold text-lg drop-shadow-md text-white"><?= htmlspecialchars($video['title'] ?? '') ?></h3>
@@ -136,10 +158,23 @@ $videos = $stmt->fetchAll();
                     </button>
                 </div>
 
-                <!-- Play/Pause Icon Overlay (Animated) -->
-                <div class="play-icon absolute inset-0 flex items-center justify-center pointer-events-none opacity-0 transition-opacity duration-200">
-                    <div class="bg-black/50 p-4 rounded-full backdrop-blur-sm">
-                        <svg class="w-12 h-12 text-white" fill="currentColor" viewBox="0 0 20 20"><path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/></svg>
+                <!-- Play/Pause Overlay (Animated) -->
+                <div class="play-overlay absolute inset-0 flex items-center justify-center opacity-0 transition-opacity duration-200 z-10 bg-black/40 backdrop-blur-[2px] hidden" onclick="togglePlay(this.parentElement.querySelector('video'))">
+                    <div class="flex items-center space-x-8">
+                        <!-- -5s -->
+                        <button onclick="event.stopPropagation(); seek(this, -5)" class="p-3 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md text-white transition">
+                            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"/></svg>
+                        </button>
+                        
+                        <!-- Play Icon -->
+                        <div class="p-5 rounded-full bg-white/20 backdrop-blur-md cursor-pointer" onclick="event.stopPropagation(); togglePlay(this.closest('.reel-item').querySelector('video'))">
+                            <svg class="w-12 h-12 text-white" fill="currentColor" viewBox="0 0 20 20"><path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/></svg>
+                        </div>
+
+                        <!-- +5s -->
+                        <button onclick="event.stopPropagation(); seek(this, 5)" class="p-3 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md text-white transition">
+                            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"/></svg>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -170,11 +205,123 @@ $videos = $stmt->fetchAll();
 
     <script>
         const container = document.getElementById('reelContainer');
+        
         // Initial videos loaded by PHP
         let loadedVideoIds = [<?= implode(',', array_column($videos, 'id')) ?>];
         let pressTimer;
         let currentVideoId = null;
         let isLoading = false;
+
+        // Attach interactions for initial videos
+        const initialVideos = document.querySelectorAll('.reel-item video');
+        initialVideos.forEach(v => {
+            attachVideoEvents(v);
+        });
+
+        // Toggle Play/Pause on Tap
+        function togglePlay(video) {
+            const overlay = video.parentElement.querySelector('.play-overlay');
+            
+            if (video.paused) {
+                video.play();
+                overlay.classList.add('opacity-0', 'hidden');
+                overlay.classList.remove('flex');
+            } else {
+                video.pause();
+                overlay.classList.remove('opacity-0', 'hidden');
+                overlay.classList.add('flex');
+            }
+        }
+
+        // Seek function (+/- 5s)
+        function seek(btn, seconds) {
+            const reelItem = btn.closest('.reel-item');
+            const video = reelItem.querySelector('video');
+            if (video) {
+                video.currentTime += seconds;
+            }
+        }
+        
+        // Seek by clicking progress bar
+        function seekByBar(e, container) {
+            const reelItem = container.closest('.reel-item');
+            const video = reelItem.querySelector('video');
+            if (video && video.duration) {
+                const rect = container.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const percent = x / rect.width;
+                video.currentTime = percent * video.duration;
+            }
+        }
+        
+        // Dragging Support
+        let isDragging = false;
+        document.addEventListener('mousedown', (e) => {
+            if (e.target.classList.contains('progress-container')) {
+                isDragging = true;
+                seekByBar(e, e.target);
+            }
+        });
+        document.addEventListener('mousemove', (e) => {
+            if (isDragging) {
+                // Find the reel item under cursor or currently active
+                // Simplified: just check if we are over a progress container
+                const target = document.elementFromPoint(e.clientX, e.clientY);
+                if (target && target.classList.contains('progress-container')) {
+                     seekByBar(e, target);
+                }
+            }
+        });
+        document.addEventListener('mouseup', () => {
+            isDragging = false;
+        });
+        
+        // Touch Dragging Support
+        document.addEventListener('touchstart', (e) => {
+            if (e.target.classList.contains('progress-container')) {
+                isDragging = true;
+                seekByBar(e.touches[0], e.target);
+            }
+        });
+        document.addEventListener('touchmove', (e) => {
+            if (isDragging) {
+                const target = document.elementFromPoint(e.touches[0].clientX, e.touches[0].clientY);
+                if (target && target.classList.contains('progress-container')) {
+                     seekByBar(e.touches[0], target);
+                }
+            }
+        });
+        document.addEventListener('touchend', () => {
+            isDragging = false;
+        });
+
+        // Like Interaction
+        async function toggleLike(videoId, btn) {
+            const icon = btn.querySelector('svg');
+            // Optimistic update
+            const isLiked = icon.getAttribute('fill') === 'currentColor';
+            
+            if (isLiked) {
+                icon.setAttribute('fill', 'none');
+                icon.classList.remove('text-red-500');
+                icon.classList.add('text-white');
+            } else {
+                icon.setAttribute('fill', 'currentColor');
+                icon.classList.remove('text-white');
+                icon.classList.add('text-red-500');
+            }
+
+            try {
+                const res = await fetch('api.php?action=like', {
+                    method: 'POST',
+                    body: JSON.stringify({ video_id: videoId })
+                });
+                const data = await res.json();
+                // Sync real state if needed
+            } catch (e) {
+                console.error('Like failed');
+            }
+        }
 
         // Infinite Scroll
         container.addEventListener('scroll', () => {
@@ -231,6 +378,11 @@ $videos = $stmt->fetchAll();
                     <span class="current-time">0:00</span> / <span class="duration">0:00</span>
                 </div>
 
+                <!-- Progress Bar -->
+                <div class="progress-container">
+                    <div class="progress-bar"></div>
+                </div>
+
                 <!-- Overlay Info -->
                 <div class="absolute bottom-20 left-4 right-16 z-20 pointer-events-none p-4 rounded-lg bg-black/30 backdrop-blur-sm">
                     <h3 class="font-bold text-lg drop-shadow-md text-white">${escapeHtml(video.title)}</h3>
@@ -272,8 +424,8 @@ $videos = $stmt->fetchAll();
             `;
             
             // Attach interactions (Long press, etc)
-            const video = div.querySelector('video');
-            attachVideoEvents(video);
+            const _video = div.querySelector('video');
+            attachVideoEvents(_video);
             
             return div;
         }
@@ -315,10 +467,15 @@ $videos = $stmt->fetchAll();
                     // Start Time Tracking
                     const timeDisplay = entry.target.querySelector('.current-time');
                     const durationDisplay = entry.target.querySelector('.duration');
+                    const progressBar = entry.target.querySelector('.progress-bar');
                     
                     video.ontimeupdate = () => {
                         if (timeDisplay) timeDisplay.textContent = formatTime(video.currentTime);
                         if (durationDisplay && video.duration) durationDisplay.textContent = formatTime(video.duration);
+                        if (progressBar && video.duration) {
+                            const percent = (video.currentTime / video.duration) * 100;
+                            progressBar.style.width = percent + '%';
+                        }
                     };
                 } else {
                     video.pause();
@@ -405,72 +562,6 @@ $videos = $stmt->fetchAll();
                 alert('Failed to post comment');
             }
         });
-
-        // Toggle Play/Pause on Tap
-        function togglePlay(video) {
-            const icon = video.parentElement.querySelector('.play-icon');
-            if (video.paused) {
-                video.play();
-                icon.style.opacity = '0';
-            } else {
-                video.pause();
-                icon.style.opacity = '1';
-                setTimeout(() => icon.style.opacity = '0', 1000); // Fade out after 1s
-            }
-        }
-
-        // Long Press for Fast Forward
-        videos.forEach(video => {
-            video.addEventListener('touchstart', (e) => {
-                pressTimer = setTimeout(() => {
-                    video.playbackRate = 2.0; // 2x Speed
-                }, 500);
-            });
-
-            video.addEventListener('touchend', () => {
-                clearTimeout(pressTimer);
-                video.playbackRate = 1.0; // Normal Speed
-            });
-
-            video.addEventListener('mousedown', () => {
-                pressTimer = setTimeout(() => {
-                    video.playbackRate = 2.0;
-                }, 500);
-            });
-
-            video.addEventListener('mouseup', () => {
-                clearTimeout(pressTimer);
-                video.playbackRate = 1.0;
-            });
-        });
-
-        // Like Interaction
-        async function toggleLike(videoId, btn) {
-            const icon = btn.querySelector('svg');
-            // Optimistic update
-            const isLiked = icon.getAttribute('fill') === 'currentColor';
-            
-            if (isLiked) {
-                icon.setAttribute('fill', 'none');
-                icon.classList.remove('text-red-500');
-                icon.classList.add('text-white');
-            } else {
-                icon.setAttribute('fill', 'currentColor');
-                icon.classList.remove('text-white');
-                icon.classList.add('text-red-500');
-            }
-
-            try {
-                const res = await fetch('api.php?action=like', {
-                    method: 'POST',
-                    body: JSON.stringify({ video_id: videoId })
-                });
-                const data = await res.json();
-                // Sync real state if needed
-            } catch (e) {
-                console.error('Like failed');
-            }
-        }
     </script>
 </body>
 </html>
