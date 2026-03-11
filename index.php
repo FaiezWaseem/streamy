@@ -102,6 +102,16 @@ if ($categoryFilter) {
                 </div>
             </div>
             <div class="flex space-x-4 items-center">
+                <!-- Layout Toggle -->
+                <div class="hidden md:flex bg-gray-800 rounded-lg p-1 mr-2">
+                    <button onclick="setLayout('grid')" id="gridBtn" class="p-2 rounded hover:bg-gray-700 transition text-white">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
+                    </button>
+                    <button onclick="setLayout('list')" id="listBtn" class="p-2 rounded hover:bg-gray-700 transition text-gray-400">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                    </button>
+                </div>
+
                 <a href="search.php" class="text-gray-400 hover:text-white transition">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
                 </a>
@@ -116,25 +126,27 @@ if ($categoryFilter) {
             <?php if (!empty($continueWatching)): ?>
                 <div>
                     <h2 class="text-xl font-bold mb-4 text-white">Continue Watching</h2>
-                    <div class="flex space-x-4 overflow-x-auto hide-scrollbar pb-4">
+                    <div class="video-container flex space-x-4 overflow-x-auto hide-scrollbar pb-4">
                         <?php foreach ($continueWatching as $video): ?>
-                            <a href="watch.php?id=<?= $video['id'] ?>" class="flex-none w-64 cursor-pointer video-card relative group rounded-md overflow-hidden bg-gray-900">
-                                <img src="<?= htmlspecialchars($video['thumbnail']) ?>" alt="<?= htmlspecialchars($video['title']) ?>" class="w-full h-36 object-cover opacity-80 group-hover:opacity-100 transition" loading="lazy">
-                                <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
-                                    <div class="bg-black/50 rounded-full p-2">
-                                        <svg class="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20"><path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/></svg>
+                            <a href="watch.php?id=<?= $video['id'] ?>" class="video-card flex-none w-64 cursor-pointer relative group rounded-md overflow-hidden bg-gray-900">
+                                <div class="thumbnail-container w-full aspect-video relative overflow-hidden">
+                                    <img src="<?= htmlspecialchars($video['thumbnail']) ?>" alt="<?= htmlspecialchars($video['title']) ?>" class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition" loading="lazy">
+                                    <div class="overlay absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
+                                        <div class="bg-black/50 rounded-full p-2">
+                                            <svg class="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20"><path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/></svg>
+                                        </div>
                                     </div>
+                                    <!-- Progress Bar -->
+                                    <?php if ($video['duration'] > 0): ?>
+                                        <div class="progress-container">
+                                            <div class="progress-bar" style="width: <?= ($video['progress'] / $video['duration']) * 100 ?>%"></div>
+                                        </div>
+                                    <?php endif; ?>
                                 </div>
-                                <div class="p-2">
+                                <div class="info-container p-2">
                                     <div class="text-sm font-medium truncate text-gray-200 group-hover:text-white"><?= htmlspecialchars($video['title']) ?></div>
                                     <div class="text-xs text-gray-500 mt-1"><?= htmlspecialchars($video['category']) ?></div>
                                 </div>
-                                <!-- Progress Bar -->
-                                <?php if ($video['duration'] > 0): ?>
-                                    <div class="progress-container">
-                                        <div class="progress-bar" style="width: <?= ($video['progress'] / $video['duration']) * 100 ?>%"></div>
-                                    </div>
-                                <?php endif; ?>
                             </a>
                         <?php endforeach; ?>
                     </div>
@@ -155,21 +167,23 @@ if ($categoryFilter) {
                     <h2 class="text-xl font-bold mb-4 text-gray-200 hover:text-red-500 cursor-pointer transition inline-block">
                         <a href="search.php?category=<?= urlencode($category) ?>"><?= htmlspecialchars($category) ?></a>
                     </h2>
-                    <div class="flex space-x-4 overflow-x-auto hide-scrollbar pb-4">
+                    <div class="video-container flex space-x-4 overflow-x-auto hide-scrollbar pb-4">
                         <?php foreach ($videos as $video): ?>
-                            <a href="watch.php?id=<?= $video['id'] ?>" class="flex-none w-64 cursor-pointer video-card relative group rounded-md overflow-hidden bg-gray-900">
-                                <img src="<?= htmlspecialchars($video['thumbnail']) ?>" 
-                                     data-static="<?= htmlspecialchars($video['thumbnail']) ?>"
-                                     data-gif="<?= !empty($video['preview_gif']) ? htmlspecialchars($video['preview_gif']) : '' ?>"
-                                     onmouseenter="playPreview(this)"
-                                     onmouseleave="stopPreview(this)"
-                                     alt="<?= htmlspecialchars($video['title']) ?>" class="w-full h-36 object-cover opacity-80 group-hover:opacity-100 transition" loading="lazy">
-                                <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition pointer-events-none">
-                                    <div class="bg-black/50 rounded-full p-2">
-                                        <svg class="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20"><path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/></svg>
+                            <a href="watch.php?id=<?= $video['id'] ?>" class="video-card flex-none w-64 cursor-pointer relative group rounded-md overflow-hidden bg-gray-900">
+                                <div class="thumbnail-container w-full aspect-video relative overflow-hidden">
+                                    <img src="<?= htmlspecialchars($video['thumbnail']) ?>" 
+                                         data-static="<?= htmlspecialchars($video['thumbnail']) ?>"
+                                         data-gif="<?= !empty($video['preview_gif']) ? htmlspecialchars($video['preview_gif']) : '' ?>"
+                                         onmouseenter="playPreview(this)"
+                                         onmouseleave="stopPreview(this)"
+                                         alt="<?= htmlspecialchars($video['title']) ?>" class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition" loading="lazy">
+                                    <div class="overlay absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition pointer-events-none">
+                                        <div class="bg-black/50 rounded-full p-2">
+                                            <svg class="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20"><path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/></svg>
+                                        </div>
                                     </div>
                                 </div>
-                                <div class="p-2">
+                                <div class="info-container p-2">
                                     <div class="text-sm font-medium truncate text-gray-200 group-hover:text-white"><?= htmlspecialchars($video['title']) ?></div>
                                 </div>
                             </a>
@@ -204,6 +218,78 @@ if ($categoryFilter) {
     </div>
 
     <script>
+        const gridBtn = document.getElementById('gridBtn');
+        const listBtn = document.getElementById('listBtn');
+        const containers = document.querySelectorAll('.video-container');
+        const cards = document.querySelectorAll('.video-card');
+
+        function setLayout(type) {
+            localStorage.setItem('streamy_layout_preference', type);
+            
+            if (type === 'list') {
+                // List Mode (Default Carousel)
+                listBtn.classList.remove('text-gray-400');
+                listBtn.classList.add('text-white', 'bg-gray-700');
+                
+                gridBtn.classList.add('text-gray-400');
+                gridBtn.classList.remove('text-white', 'bg-gray-700');
+
+                containers.forEach(c => {
+                    c.classList.add('flex', 'space-x-4', 'overflow-x-auto');
+                    c.classList.remove('grid', 'grid-cols-2', 'gap-4');
+                });
+
+                cards.forEach(card => {
+                    card.classList.add('flex-none', 'w-64');
+                    card.classList.remove('w-full', 'flex', 'gap-4', 'items-center', 'bg-gray-800', 'p-2');
+                    
+                    const thumb = card.querySelector('.thumbnail-container');
+                    thumb.classList.add('w-full');
+                    thumb.classList.remove('w-48', 'flex-shrink-0');
+                    
+                    const info = card.querySelector('.info-container');
+                    info.classList.remove('flex-1');
+                    info.querySelector('.text-sm').classList.add('truncate');
+                    info.querySelector('.text-sm').classList.remove('text-lg');
+                });
+
+            } else {
+                // Grid Mode (2 Columns, Vertical Cards)
+                gridBtn.classList.remove('text-gray-400');
+                gridBtn.classList.add('text-white', 'bg-gray-700');
+                
+                listBtn.classList.add('text-gray-400');
+                listBtn.classList.remove('text-white', 'bg-gray-700');
+
+                containers.forEach(c => {
+                    c.classList.remove('flex', 'space-x-4', 'overflow-x-auto');
+                    c.classList.add('grid', 'grid-cols-2', 'gap-4');
+                });
+
+                cards.forEach(card => {
+                    card.classList.remove('flex-none', 'w-64');
+                    card.classList.add('w-full');
+                    // Ensure vertical layout (remove any horizontal list styles if present)
+                    card.classList.remove('flex', 'gap-4', 'items-center', 'bg-gray-800', 'p-2');
+                    
+                    // Thumbnail
+                    const thumb = card.querySelector('.thumbnail-container');
+                    thumb.classList.add('w-full', 'aspect-video');
+                    thumb.classList.remove('w-48', 'flex-shrink-0');
+                    
+                    // Info
+                    const info = card.querySelector('.info-container');
+                    info.classList.remove('flex-1');
+                    info.querySelector('.text-sm').classList.add('truncate');
+                    info.querySelector('.text-sm').classList.remove('text-lg');
+                });
+            }
+        }
+
+        // Init
+        const savedLayout = localStorage.getItem('streamy_layout_preference') || 'grid';
+        setLayout(savedLayout);
+
         function playPreview(img) {
             const gif = img.getAttribute('data-gif');
             if (gif) {

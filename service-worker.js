@@ -1,13 +1,13 @@
 const CACHE_NAME = 'streamy-v1';
 const ASSETS_TO_CACHE = [
-  '/',
-  '/index.php',
-  '/channels.php',
-  '/profile.php',
-  '/upload.php',
-  '/watch.php',
-  '/manifest.json',
-  'https://cdn.tailwindcss.com'
+  './',
+  './index.php',
+  './channels.php',
+  './profile.php',
+  './upload.php',
+  './watch.php',
+  './manifest.json',
+  // 'https://cdn.tailwindcss.com'
 ];
 
 self.addEventListener('install', (event) => {
