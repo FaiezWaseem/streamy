@@ -1,13 +1,14 @@
 <?php
 require_once 'auth.php';
 requireLogin();
+header('Cache-Control: private, no-store');
 
 $user = getCurrentUser($db);
 
 // 1. Fetch Continue Watching
 // Optimize: Select only needed columns
 $stmt = $db->prepare("
-    SELECT v.id, v.title, v.thumbnail, v.category, v.duration, wh.progress, wh.completed 
+    SELECT v.id, v.title, v.thumbnail, v.preview_gif, v.category, v.duration, wh.progress, wh.completed
     FROM watch_history wh 
     JOIN videos v ON wh.video_id = v.id 
     WHERE wh.user_id = ? AND wh.completed = 0 
@@ -130,7 +131,7 @@ if ($categoryFilter) {
                         <?php foreach ($continueWatching as $video): ?>
                             <a href="watch.php?id=<?= $video['id'] ?>" class="video-card flex-none w-64 cursor-pointer relative group rounded-md overflow-hidden bg-gray-900">
                                 <div class="thumbnail-container w-full aspect-video relative overflow-hidden">
-                                    <img src="<?= htmlspecialchars($video['thumbnail']) ?>" alt="<?= htmlspecialchars($video['title']) ?>" class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition" loading="lazy">
+                                    <img data-gif="<?= htmlspecialchars($video['preview_gif'] ?? '') ?>" src="<?= htmlspecialchars($video['thumbnail'] ?: 'assets/video-placeholder.svg') ?>" alt="<?= htmlspecialchars($video['title']) ?>" class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition" loading="lazy">
                                     <div class="overlay absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
                                         <div class="bg-black/50 rounded-full p-2">
                                             <svg class="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20"><path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/></svg>
@@ -171,11 +172,9 @@ if ($categoryFilter) {
                         <?php foreach ($videos as $video): ?>
                             <a href="watch.php?id=<?= $video['id'] ?>" class="video-card flex-none w-64 cursor-pointer relative group rounded-md overflow-hidden bg-gray-900">
                                 <div class="thumbnail-container w-full aspect-video relative overflow-hidden">
-                                    <img src="<?= htmlspecialchars($video['thumbnail']) ?>" 
-                                         data-static="<?= htmlspecialchars($video['thumbnail']) ?>"
+                                    <img src="<?= htmlspecialchars($video['thumbnail'] ?: 'assets/video-placeholder.svg') ?>"
+                                         data-static="<?= htmlspecialchars($video['thumbnail'] ?: 'assets/video-placeholder.svg') ?>"
                                          data-gif="<?= !empty($video['preview_gif']) ? htmlspecialchars($video['preview_gif']) : '' ?>"
-                                         onmouseenter="playPreview(this)"
-                                         onmouseleave="stopPreview(this)"
                                          alt="<?= htmlspecialchars($video['title']) ?>" class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition" loading="lazy">
                                     <div class="overlay absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition pointer-events-none">
                                         <div class="bg-black/50 rounded-full p-2">
@@ -289,20 +288,6 @@ if ($categoryFilter) {
         // Init
         const savedLayout = localStorage.getItem('streamy_layout_preference') || 'grid';
         setLayout(savedLayout);
-
-        function playPreview(img) {
-            const gif = img.getAttribute('data-gif');
-            if (gif) {
-                img.src = gif;
-            }
-        }
-
-        function stopPreview(img) {
-            const static = img.getAttribute('data-static');
-            if (static) {
-                img.src = static;
-            }
-        }
 
         document.getElementById('scanForm').addEventListener('submit', async (e) => {
             e.preventDefault();

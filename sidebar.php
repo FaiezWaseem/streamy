@@ -1,13 +1,26 @@
 <!-- sidebar.php -->
 <!-- PWA & Mobile Optimization Meta Tags (Added here to ensure inclusion across pages) -->
 <link rel="manifest" href="manifest.json">
+<script src="assets/video-preview.js?v=1" defer></script>
 <meta name="theme-color" content="#141414">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <script>
     if ('serviceWorker' in navigator) {
+        let refreshingForWorker = false;
+        const hadController = Boolean(navigator.serviceWorker.controller);
+        navigator.serviceWorker.addEventListener('controllerchange', function() {
+            // Refresh stale library views once the old page cache is removed.
+            const page = window.location.pathname.split('/').pop();
+            if (hadController && !refreshingForWorker &&
+                ['', 'index.php', 'channels.php', 'search.php', 'profile.php', 'saved.php', 'reels.php'].includes(page)) {
+                refreshingForWorker = true;
+                window.location.reload();
+            }
+        });
         window.addEventListener('load', function() {
-            navigator.serviceWorker.register('./service-worker.js').then(function(registration) {
+            navigator.serviceWorker.register('./service-worker.js', { updateViaCache: 'none' }).then(function(registration) {
+                registration.update().catch(function() {});
                 console.log('ServiceWorker registration successful with scope: ', registration.scope);
             }, function(err) {
                 console.log('ServiceWorker registration failed: ', err);

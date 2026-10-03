@@ -52,7 +52,7 @@ $savedVideos = $stmt->fetchAll();
                 <?php foreach ($savedVideos as $video): ?>
                     <div class="bg-gray-900 rounded-lg overflow-hidden group hover:ring-2 hover:ring-red-600 transition">
                         <a href="watch.php?id=<?= $video['id'] ?>" class="block aspect-video relative">
-                            <img src="<?= htmlspecialchars($video['thumbnail']) ?>" alt="<?= htmlspecialchars($video['title']) ?>" class="w-full h-full object-cover">
+                            <img data-gif="<?= htmlspecialchars($video['preview_gif'] ?? '') ?>" src="<?= htmlspecialchars($video['thumbnail'] ?: 'assets/video-placeholder.svg') ?>" alt="<?= htmlspecialchars($video['title']) ?>" class="w-full h-full object-cover">
                             <?php if ($video['duration']): ?>
                                 <span class="absolute bottom-2 right-2 bg-black/80 text-white text-xs px-2 py-1 rounded">
                                     <?= gmdate(($video['duration'] > 3600 ? "H:i:s" : "i:s"), $video['duration']) ?>

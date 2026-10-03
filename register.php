@@ -6,6 +6,13 @@ if (isLoggedIn()) {
     exit;
 }
 
+$registrationAllowed = filter_var(getenv('ALLOW_REGISTRATION') !== false ? getenv('ALLOW_REGISTRATION') : 'true', FILTER_VALIDATE_BOOLEAN);
+
+if (!$registrationAllowed) {
+    header('Location: login.php?error=registration_disabled');
+    exit;
+}
+
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {

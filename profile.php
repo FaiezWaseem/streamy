@@ -126,7 +126,7 @@ $myVideos = $stmt->fetchAll();
                     <?php foreach ($myVideos as $video): ?>
                         <div class="glass-panel rounded-xl overflow-hidden group hover:border-white/20 transition duration-300">
                             <a href="watch.php?id=<?= $video['id'] ?>" class="block aspect-video relative">
-                                <img src="<?= htmlspecialchars($video['thumbnail']) ?>" alt="Thumbnail" class="w-full h-full object-cover">
+                                <img data-gif="<?= htmlspecialchars($video['preview_gif'] ?? '') ?>" src="<?= htmlspecialchars($video['thumbnail'] ?: 'assets/video-placeholder.svg') ?>" alt="Thumbnail" class="w-full h-full object-cover">
                                 <?php if ($video['visibility'] === 'private'): ?>
                                     <div class="absolute top-2 right-2 bg-black/80 text-[9px] font-black px-2 py-1 rounded-sm uppercase tracking-tighter">Private</div>
                                 <?php endif; ?>

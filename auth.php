@@ -1,6 +1,8 @@
 <?php
 // auth.php
 session_start();
+header('Cache-Control: private, no-store, max-age=0');
+header('Pragma: no-cache');
 require_once 'db.php';
 
 function isLoggedIn() {

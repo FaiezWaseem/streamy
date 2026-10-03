@@ -6,7 +6,13 @@ if (isLoggedIn()) {
     exit;
 }
 
+$registrationAllowed = filter_var(getenv('ALLOW_REGISTRATION') !== false ? getenv('ALLOW_REGISTRATION') : 'true', FILTER_VALIDATE_BOOLEAN);
+
 $error = '';
+
+if (isset($_GET['error']) && $_GET['error'] === 'registration_disabled') {
+    $error = 'New account registration is currently disabled.';
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = trim($_POST['username']);
@@ -52,9 +58,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
             <button type="submit" class="w-full py-3 font-bold text-white bg-red-600 rounded hover:bg-red-700 transition">Sign In</button>
         </form>
+        <?php if ($registrationAllowed): ?>
         <p class="text-sm text-center text-gray-400">
             New to Streamy? <a href="register.php" class="text-white hover:underline">Sign up now</a>.
         </p>
+        <?php endif; ?>
     </div>
 </body>
 </html>

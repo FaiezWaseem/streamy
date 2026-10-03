@@ -66,7 +66,7 @@ $videos = $stmt->fetchAll();
                 <?php foreach ($videos as $video): ?>
                     <a href="watch.php?id=<?= $video['id'] ?>" class="block group relative overflow-hidden rounded-lg bg-gray-900 transition hover:scale-105 hover:z-10">
                         <div class="aspect-video relative">
-                            <img src="<?= htmlspecialchars($video['thumbnail']) ?>" alt="<?= htmlspecialchars($video['title']) ?>" class="w-full h-full object-cover">
+                            <img data-gif="<?= htmlspecialchars($video['preview_gif'] ?? '') ?>" src="<?= htmlspecialchars($video['thumbnail'] ?: 'assets/video-placeholder.svg') ?>" alt="<?= htmlspecialchars($video['title']) ?>" class="w-full h-full object-cover">
                             <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
                                 <svg class="w-12 h-12 text-white" fill="currentColor" viewBox="0 0 20 20"><path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/></svg>
                             </div>

@@ -4,10 +4,11 @@ requireLogin();
 
 $user = getCurrentUser($db);
 
-// Get all categories with a thumbnail from the first video
+// Prefer the latest available thumbnail for each channel.
 $stmt = $db->query("
     SELECT category, COUNT(*) as count, 
-    (SELECT thumbnail FROM videos v2 WHERE v2.category = v1.category LIMIT 1) as thumbnail 
+    (SELECT thumbnail FROM videos v2 WHERE v2.category = v1.category
+     AND thumbnail IS NOT NULL AND thumbnail != '' ORDER BY created_at DESC, id DESC LIMIT 1) as thumbnail
     FROM videos v1 
     GROUP BY category
 ");
@@ -38,7 +39,7 @@ $categories = $stmt->fetchAll();
         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             <?php foreach ($categories as $cat): ?>
                 <a href="search.php?category=<?= urlencode($cat['category']) ?>" class="block group relative overflow-hidden rounded-lg aspect-video bg-gray-800">
-                    <img src="<?= htmlspecialchars($cat['thumbnail']) ?>" alt="<?= htmlspecialchars($cat['category']) ?>" class="w-full h-full object-cover transition transform group-hover:scale-110">
+                    <img src="<?= htmlspecialchars($cat['thumbnail'] ?: 'assets/video-placeholder.svg') ?>" alt="<?= htmlspecialchars($cat['category']) ?>" class="w-full h-full object-cover transition transform group-hover:scale-110">
                     <div class="absolute inset-0 bg-black bg-opacity-40 group-hover:bg-opacity-30 transition flex items-center justify-center">
                         <div class="text-center">
                             <h3 class="text-xl font-bold"><?= htmlspecialchars($cat['category']) ?></h3>

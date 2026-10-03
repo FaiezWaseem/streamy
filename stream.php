@@ -1,12 +1,13 @@
 <?php
 // stream.php
 require_once 'auth.php';
+require_once __DIR__ . '/mobile_auth.php';
 
 // Close session immediately to prevent blocking other requests (like progress updates)
 // The session is only needed to verify login status initially.
 session_write_close();
 
-if (!isLoggedIn()) {
+if (!isLoggedIn() && !mobileCurrentUserId($db)) {
     http_response_code(403);
     die('Unauthorized');
 }
@@ -17,8 +18,10 @@ if (!isset($_GET['id'])) {
 }
 
 $id = $_GET['id'];
-$stmt = $db->prepare("SELECT filepath, filename FROM videos WHERE id = ?");
-$stmt->execute([$id]);
+$viewerId = mobileCurrentUserId($db);
+if (isLoggedIn()) $viewerId = (int)$_SESSION['user_id'];
+$stmt = $db->prepare("SELECT filepath, filename FROM videos WHERE id = ? AND (visibility = 'public' OR uploader_id = ?)");
+$stmt->execute([$id, $viewerId]);
 $video = $stmt->fetch();
 
 if (!$video || !file_exists($video['filepath'])) {
@@ -33,7 +36,8 @@ $length = $size;           // Content length
 $start = 0;               // Start byte
 $end = $size - 1;         // End byte
 
-header('Content-type: video/mp4');
+$mimeType = function_exists('mime_content_type') ? mime_content_type($file) : false;
+header('Content-type: ' . ($mimeType ?: 'application/octet-stream'));
 header("Accept-Ranges: bytes");
 
 if (isset($_SERVER['HTTP_RANGE'])) {

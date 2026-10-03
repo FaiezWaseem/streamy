@@ -29,5 +29,6 @@ if (!function_exists('loadEnv')) {
     }
 }
 
+loadEnv(dirname(__DIR__) . '/streamy-private/.env');
 loadEnv(__DIR__ . '/.env');
 ?>

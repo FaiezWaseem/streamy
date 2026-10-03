@@ -16,6 +16,7 @@ temp_uploads/
 # User uploads (if any other directories are created dynamically)
 *.log
 *.tmp
+streamy-web-upload.zip
 
 # Vendor/Dependency directories (good practice to add for future)
 vendor/

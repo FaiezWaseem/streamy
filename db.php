@@ -3,7 +3,9 @@
 // Database connection and initialization
 require_once __DIR__ . '/env_loader.php';
 
-$dbPath = __DIR__ . '/db/streamy.sqlite';
+$privateConfigPath = dirname(__DIR__) . '/streamy-private/config.php';
+$privateConfig = is_file($privateConfigPath) ? require $privateConfigPath : [];
+$dbPath = $privateConfig['database_path'] ?? __DIR__ . '/db/streamy.sqlite';
 
 try {
     $db = new PDO("sqlite:$dbPath");
