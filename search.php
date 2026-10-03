@@ -16,7 +16,8 @@ $sql = "SELECT * FROM videos WHERE 1=1";
 $params = [];
 
 if (!empty($query)) {
-    $sql .= " AND (title LIKE ? OR description LIKE ?)";
+    $sql .= " AND (title LIKE ? OR description LIKE ? OR tags LIKE ?)";
+    $params[] = "%$query%";
     $params[] = "%$query%";
     $params[] = "%$query%";
 }

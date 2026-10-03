@@ -1,6 +1,7 @@
 <?php
 // regenerate_thumbnails.php
 require_once 'auth.php';
+require_once __DIR__ . '/mobile_thumbnail.php';
 requireLogin();
 
 $user = getCurrentUser($db);
@@ -42,47 +43,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             continue;
         }
         
-        // 1. Regenerate Thumbnail
-        $thumbName = md5($filePath) . '.jpg';
-        $thumbPath = __DIR__ . '/thumbnails/' . $thumbName;
-        
-        // Force overwrite
-        if (file_exists($thumbPath)) unlink($thumbPath);
-        
-        $cmd = "ffmpeg -i " . escapeshellarg($filePath) . " -ss 00:00:10 -vframes 1 -q:v 2 " . escapeshellarg($thumbPath) . " 2>&1";
-        exec($cmd);
-        
+        $thumbnail = mobileVideoThumbnail($filePath);
+        if ($thumbnail !== 'assets/video-placeholder.svg') {
+            $db->prepare('UPDATE videos SET thumbnail = ? WHERE id = ?')->execute([$thumbnail, $video['id']]);
+        } else {
+            $errors++;
+            continue;
+        }
+
         // 2. Generate Preview GIF (if requested)
         if ($generateGifs) {
-            $gifName = md5($filePath) . '.gif';
-            $gifPath = __DIR__ . '/thumbnails/' . $gifName;
-            
-            if (file_exists($gifPath)) unlink($gifPath);
-            
-            // Generate GIF: 0-3s, 12-15s, 22-25s (or dynamic based on duration)
-            // Complex FFmpeg filter to concat segments
-            // Simplified approach: Take 1.5s from start, middle, and end
-            
-            $duration = $video['duration'] ?: 30; // Default if unknown
-            $mid = floor($duration / 2);
-            $end = max(0, $duration - 5);
-            
-            // Create a complex filter to select segments and concat them
-            // select='between(t,0,1.5)+between(t,${mid},${mid}+1.5)+between(t,${end},${end}+1.5)'
-            // setpts=N/FRAME_RATE/TB
-            // scale=320:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse
-            
-            // Note: Creating high quality GIFs is CPU intensive.
-            // Let's do a simpler version: just 3 seconds from 10% mark
-            
-            $start = floor($duration * 0.1);
-            
-            $cmdGif = "ffmpeg -y -ss {$start} -t 3 -i " . escapeshellarg($filePath) . " -vf \"fps=10,scale=320:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse\" " . escapeshellarg($gifPath) . " 2>&1";
-            exec($cmdGif);
-            
-            // Update DB
-            $stmt = $db->prepare("UPDATE videos SET preview_gif = ? WHERE id = ?");
-            $stmt->execute(['thumbnails/' . $gifName, $video['id']]);
+            $preview = mobileVideoPreview($filePath, (int)$video['duration']);
+            if ($preview !== '') {
+                $db->prepare('UPDATE videos SET preview_gif = ? WHERE id = ?')->execute([$preview, $video['id']]);
+            }
         }
         
         $count++;

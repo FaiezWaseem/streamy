@@ -84,6 +84,12 @@ try {
         UNIQUE(user_id, video_id)
     )");
 
+    $db->exec("CREATE TABLE IF NOT EXISTS mobile_completed_uploads (
+        user_id INTEGER NOT NULL, upload_id TEXT NOT NULL,
+        video_id INTEGER NOT NULL, total_bytes INTEGER NOT NULL,
+        PRIMARY KEY(user_id,upload_id)
+    )");
+
     // Add columns if they don't exist (migrations)
     $columns = $db->query("PRAGMA table_info(videos)")->fetchAll(PDO::FETCH_COLUMN, 1);
     if (!in_array('duration', $columns)) {
@@ -104,6 +110,16 @@ try {
     if (!in_array('preview_gif', $columns)) {
         $db->exec("ALTER TABLE videos ADD COLUMN preview_gif TEXT");
     }
+    if (!in_array('tags', $columns)) {
+        $db->exec("ALTER TABLE videos ADD COLUMN tags TEXT NOT NULL DEFAULT '[]'");
+    }
+    $db->exec("CREATE TABLE IF NOT EXISTS video_watch_events (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL, video_id INTEGER NOT NULL,
+        event_id TEXT NOT NULL, watched_seconds REAL NOT NULL,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(user_id,event_id)
+    ); CREATE INDEX IF NOT EXISTS watch_events_user_date ON video_watch_events(user_id,created_at DESC)");
 
 } catch (PDOException $e) {
     die("Database connection failed: " . $e->getMessage());

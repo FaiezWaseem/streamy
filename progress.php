@@ -1,6 +1,7 @@
 <?php
 // progress.php
 require_once 'auth.php';
+require_once __DIR__ . '/recommendations.php';
 
 if (!isLoggedIn()) {
     http_response_code(401);
@@ -20,6 +21,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     $userId = $_SESSION['user_id'];
+    $access = $db->prepare("SELECT id FROM videos WHERE id=? AND (visibility='public' OR uploader_id=?)");
+    $access->execute([$videoId,$userId]);
+    if (!$access->fetchColumn()) { http_response_code(404); exit; }
     
     // Close session immediately to prevent locking other requests
     session_write_close();
@@ -41,6 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->execute([$duration, $videoId]);
     }
     
+    recordInterestWatch($db,(int)$userId,(int)$videoId,(string)($data['event_id'] ?? ''),(float)($data['watched_seconds'] ?? 0));
     echo json_encode(['status' => 'success']);
 }
 ?>

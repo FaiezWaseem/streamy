@@ -20,31 +20,8 @@ if ($video['visibility'] === 'private' && $video['uploader_id'] != $user['id']) 
     die("This video is private.");
 }
 
-// Fetch Related Videos (Look-alike Algorithm)
-// 1. Content-based: Same category (+10 points)
-// 2. Collaborative: Users who watched this also watched candidate (+5 points per user)
-// 3. Popularity: Views as tie-breaker
-$sql = "
-    SELECT v.*, 
-           (CASE WHEN v.category = :category THEN 10 ELSE 0 END) +
-           (
-               SELECT COUNT(DISTINCT wh2.user_id) 
-               FROM watch_history wh1
-               JOIN watch_history wh2 ON wh1.user_id = wh2.user_id
-               WHERE wh1.video_id = :id 
-               AND wh2.video_id = v.id 
-               AND wh2.video_id != :id
-           ) * 5 as score
-    FROM videos v
-    WHERE v.id != :id 
-    AND v.visibility = 'public'
-    ORDER BY score DESC, v.views DESC
-    LIMIT 10
-";
-
-$stmt = $db->prepare($sql);
-$stmt->execute([':category' => $video['category'], ':id' => $videoId]);
-$related = $stmt->fetchAll();
+require_once __DIR__ . '/recommendations.php';
+$related = recommendedVideos($db, (int)$user['id'], 10, $video);
 
 // Fetch Comments
 $stmt = $db->prepare("
@@ -120,6 +97,11 @@ $isLiked = (bool)$stmt->fetch();
                         </div>
                     </div>
                     <div class="mt-4 bg-gray-900 p-4 rounded-lg">
+                        <div class="flex flex-wrap gap-2 mb-3">
+                            <?php foreach (videoTags($video['tags']) as $tag): ?>
+                                <span class="text-xs bg-gray-800 rounded-full px-3 py-1"><?= htmlspecialchars($tag) ?></span>
+                            <?php endforeach; ?>
+                        </div>
                         <p class="text-gray-300"><?= nl2br(htmlspecialchars($video['description'] ?? 'No description.')) ?></p>
                     </div>
                 </div>
@@ -167,7 +149,7 @@ $isLiked = (bool)$stmt->fetch();
                 <?php foreach ($related as $rv): ?>
                     <a href="watch.php?id=<?= $rv['id'] ?>" class="flex gap-2 group cursor-pointer">
                         <div class="w-40 aspect-video relative rounded overflow-hidden flex-shrink-0">
-                            <img src="<?= htmlspecialchars($rv['thumbnail']) ?>" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+                            <img data-gif="<?= htmlspecialchars($rv['preview_gif'] ?? '') ?>" src="<?= htmlspecialchars($rv['thumbnail'] ?: 'assets/video-placeholder.svg') ?>" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
                         </div>
                         <div class="flex-1 min-w-0">
                             <h4 class="font-bold text-sm truncate group-hover:text-red-500 transition"><?= htmlspecialchars($rv['title']) ?></h4>
@@ -280,22 +262,29 @@ $isLiked = (bool)$stmt->fetch();
             }
         }
 
-        // Progress Tracking (Reuse logic)
+        // Count actual playback rather than page opens, seeks, or thumbnail previews.
         const player = document.getElementById('player');
+        const eventId = Array.from(crypto.getRandomValues(new Uint8Array(16)), b => b.toString(16).padStart(2, '0')).join('');
+        let watchedSeconds = 0, lastPosition = player.currentTime, elapsed = 0, qualified = false;
+        function sendProgress() {
+            if (!Number.isFinite(player.duration)) return;
+            fetch('progress.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, keepalive: true,
+                body: JSON.stringify({ video_id: <?= (int)$videoId ?>, current_time: player.currentTime,
+                    duration: player.duration, event_id: eventId, watched_seconds: watchedSeconds }) });
+        }
         setInterval(() => {
-            if (!player.paused) {
-                fetch('progress.php', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    keepalive: true,
-                    body: JSON.stringify({
-                        video_id: <?= $videoId ?>,
-                        current_time: player.currentTime,
-                        duration: player.duration
-                    })
-                });
+            const delta = player.currentTime - lastPosition;
+            lastPosition = player.currentTime;
+            if (player.paused || delta <= 0 || delta > 2) return;
+            watchedSeconds += delta; elapsed += delta;
+            const threshold = Math.min(10, Math.max(1, player.duration * 0.2));
+            if ((!qualified && watchedSeconds >= threshold) || elapsed >= 10) {
+                qualified = watchedSeconds >= threshold; elapsed = 0; sendProgress();
             }
-        }, 10000); // Update every 10 seconds
+        }, 1000);
+        player.addEventListener('pause', sendProgress);
+        player.addEventListener('ended', sendProgress);
+        document.addEventListener('visibilitychange', () => { if (document.hidden) sendProgress(); });
     </script>
 </body>
 </html>

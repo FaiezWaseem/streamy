@@ -1,6 +1,8 @@
 <?php
 // upload.php
 require_once 'auth.php';
+require_once __DIR__ . '/mobile_thumbnail.php';
+require_once __DIR__ . '/recommendations.php';
 requireLogin();
 
 $user = getCurrentUser($db);
@@ -108,28 +110,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 // Generate Thumbnail if no custom one provided
                 if (empty($webThumbPath)) {
-                    $thumbName = md5($targetFilePath) . '.jpg';
-                    $thumbPath = __DIR__ . '/thumbnails/' . $thumbName;
-                    if (!is_dir(dirname($thumbPath))) mkdir(dirname($thumbPath), 0755, true);
-
-                    $cmd = "ffmpeg -i " . escapeshellarg($targetFilePath) . " -ss 00:00:10 -vframes 1 -q:v 2 " . escapeshellarg($thumbPath) . " 2>&1";
-                    exec($cmd);
-                    $webThumbPath = 'thumbnails/' . $thumbName;
+                    $webThumbPath = mobileVideoThumbnail($targetFilePath);
                 }
 
-                // Generate GIF Preview
-                $gifName = md5($targetFilePath) . '.gif';
-                $gifPath = __DIR__ . '/thumbnails/' . $gifName;
-                if (!is_dir(dirname($gifPath))) mkdir(dirname($gifPath), 0755, true);
+                $webGifPath = mobileVideoPreview($targetFilePath);
 
-                if (!file_exists($gifPath)) {
-                    $cmdGif = "ffmpeg -ss 00:00:05 -t 3 -i " . escapeshellarg($targetFilePath) . " -vf \"fps=10,scale=320:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse\" " . escapeshellarg($gifPath) . " 2>&1";
-                    exec($cmdGif);
-                }
-                $webGifPath = 'thumbnails/' . $gifName;
-
-                $stmt = $db->prepare("INSERT INTO videos (title, description, filename, filepath, category, thumbnail, preview_gif, visibility, uploader_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
-                if ($stmt->execute([$title, $description, $filename, $targetFilePath, $category, $webThumbPath, $webGifPath, $visibility, $user['id']])) {
+                $stmt = $db->prepare("INSERT INTO videos (title, description, filename, filepath, category, thumbnail, preview_gif, visibility, uploader_id, tags) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                if ($stmt->execute([$title, $description, $filename, $targetFilePath, $category, $webThumbPath, $webGifPath, $visibility, $user['id'], json_encode(videoTags($_POST['tags'] ?? ''))])) {
                     $success = "Video uploaded successfully!";
                 } else {
                     $error = "Database error.";
@@ -250,6 +237,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <input type="text" id="new_category_input" name="new_category" placeholder="Enter new category name" class="mt-2 hidden w-full bg-gray-800 border border-gray-700 rounded px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-red-600">
                     </div>
 
+                    <div>
+                        <label class="block text-sm text-gray-400 mb-2">Tags</label>
+                        <input name="tags" placeholder="funny, thriller, english" class="w-full bg-gray-800 border border-gray-700 rounded px-4 py-3 text-white">
+                        <p class="text-xs text-gray-500 mt-2">Separate tags with commas.</p>
+                    </div>
                     <!-- Thumbnail -->
                     <div>
                         <label class="block text-sm font-medium text-gray-400 mb-2">Custom Thumbnail (Optional)</label>

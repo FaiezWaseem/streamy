@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/mobile_auth.php';
 require_once __DIR__ . '/mobile_thumbnail.php';
+require_once __DIR__ . '/recommendations.php';
 
 header('Content-Type: application/json; charset=utf-8');
 $userId = mobileRequireUser($db);
@@ -32,6 +33,15 @@ if (!is_dir($tempDir) && !mkdir($tempDir, 0755, true)) {
     uploadJson(['error' => 'Could not create upload directory'], 500);
 }
 $tempPath = $tempDir . '/' . $userId . '_' . $uploadId . '.part';
+// Serialize retries of the same upload, including thumbnail generation and final DB commit.
+$lock = fopen($tempPath . '.lock', 'c');
+if (!$lock || !flock($lock, LOCK_EX)) uploadJson(['error' => 'Could not lock upload'], 500);
+$completed = $db->prepare('SELECT u.video_id, u.total_bytes FROM mobile_completed_uploads u JOIN videos v ON v.id=u.video_id WHERE u.user_id=? AND u.upload_id=?');
+$completed->execute([$userId, $uploadId]);
+if ($previous = $completed->fetch(PDO::FETCH_ASSOC)) {
+    if ((int)$previous['total_bytes'] !== $expectedBytes) uploadJson(['error' => 'Local file changed since this upload.'], 409);
+    uploadJson(['success' => true, 'complete' => true, 'bytes' => $expectedBytes, 'id' => (int)$previous['video_id']]);
+}
 if (($index === 0 && $offset !== 0) || ($index > 0 && (!is_file($tempPath) || filesize($tempPath) !== $offset))) {
     uploadJson(['error' => 'Upload chunks arrived out of order'], 409);
 }
@@ -73,12 +83,19 @@ $category = trim((string)($_POST['category'] ?? 'Mobile Upload')) ?: 'Mobile Upl
 $duration = max(0, (int)($_POST['duration'] ?? 0));
 $thumbnail = mobileVideoThumbnail($targetPath);
 $preview = mobileVideoPreview($targetPath, $duration);
+$tags = json_encode(videoTags($_POST['tags'] ?? []));
 try {
-    $stmt = $db->prepare("INSERT INTO videos (title, description, filename, filepath, category, duration, thumbnail, preview_gif, visibility, uploader_id)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'public', ?)");
-    $stmt->execute([$title ?: pathinfo($filename, PATHINFO_FILENAME), $description, $storedName, $targetPath, $category, $duration, $thumbnail, $preview, $userId]);
-    uploadJson(['success' => true, 'complete' => true, 'bytes' => $expectedBytes, 'id' => (int)$db->lastInsertId()]);
+    $db->beginTransaction();
+    $stmt = $db->prepare("INSERT INTO videos (title, description, filename, filepath, category, duration, thumbnail, preview_gif, tags, visibility, uploader_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'public', ?)");
+    $stmt->execute([$title ?: pathinfo($filename, PATHINFO_FILENAME), $description, $storedName, $targetPath, $category, $duration, $thumbnail, $preview, $tags, $userId]);
+    $videoId = (int)$db->lastInsertId();
+    $record = $db->prepare('INSERT INTO mobile_completed_uploads(user_id,upload_id,video_id,total_bytes) VALUES(?,?,?,?) ON CONFLICT(user_id,upload_id) DO UPDATE SET video_id=excluded.video_id,total_bytes=excluded.total_bytes');
+    $record->execute([$userId, $uploadId, $videoId, $expectedBytes]);
+    $db->commit();
+    uploadJson(['success' => true, 'complete' => true, 'bytes' => $expectedBytes, 'id' => $videoId]);
 } catch (Throwable $error) {
+    if ($db->inTransaction()) $db->rollBack();
     @unlink($targetPath);
     uploadJson(['error' => 'Could not save uploaded video'], 500);
 }

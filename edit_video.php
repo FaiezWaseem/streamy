@@ -2,6 +2,7 @@
 // edit_video.php
 require_once 'auth.php';
 requireLogin();
+require_once __DIR__ . '/recommendations.php';
 
 $user = getCurrentUser($db);
 $videoId = $_GET['id'] ?? null;
@@ -31,6 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $title = trim($_POST['title']);
     $description = trim($_POST['description']);
     $visibility = $_POST['visibility'];
+    $tags = videoTags($_POST['tags'] ?? '');
     
     // Category logic
     $category = trim($_POST['category_select']);
@@ -47,14 +49,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($title)) {
         $error = "Title cannot be empty.";
     } else {
-        $stmt = $db->prepare("UPDATE videos SET title = ?, description = ?, category = ?, visibility = ? WHERE id = ?");
-        if ($stmt->execute([$title, $description, $category, $visibility, $videoId])) {
+        $stmt = $db->prepare("UPDATE videos SET title = ?, description = ?, category = ?, visibility = ?, tags = ? WHERE id = ?");
+        if ($stmt->execute([$title, $description, $category, $visibility, json_encode($tags), $videoId])) {
             $success = "Video updated successfully.";
             // Refresh video data
             $video['title'] = $title;
             $video['description'] = $description;
             $video['category'] = $category;
             $video['visibility'] = $visibility;
+            $video['tags'] = json_encode($tags);
         } else {
             $error = "Update failed.";
         }
@@ -114,6 +117,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <input type="text" name="title" value="<?= htmlspecialchars($video['title']) ?>" class="w-full bg-gray-800 border border-gray-700 rounded px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-red-600" required>
                 </div>
 
+                <div>
+                    <label class="block text-sm text-gray-400 mb-2">Tags</label>
+                    <input name="tags" value="<?= htmlspecialchars(implode(', ', videoTags($video['tags']))) ?>" placeholder="funny, thriller, english" class="w-full bg-gray-800 border border-gray-700 rounded px-4 py-3 text-white">
+                    <p class="text-xs text-gray-500 mt-2">Separate tags with commas. Up to 20 tags per video.</p>
+                </div>
                 <!-- Description -->
                 <div>
                     <label class="block text-sm font-medium text-gray-400 mb-2">Description</label>

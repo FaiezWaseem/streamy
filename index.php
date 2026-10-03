@@ -4,6 +4,8 @@ requireLogin();
 header('Cache-Control: private, no-store');
 
 $user = getCurrentUser($db);
+require_once __DIR__ . '/recommendations.php';
+$recommended = recommendedVideos($db, (int)$user['id']);
 
 // 1. Fetch Continue Watching
 // Optimize: Select only needed columns
@@ -123,6 +125,24 @@ if ($categoryFilter) {
 
         <div class="px-4 md:px-8 pb-10 space-y-10 mt-4 overflow-hidden">
             
+            <?php if ($recommended): ?>
+                <section>
+                    <h2 class="text-xl font-bold mb-4">Recommended for you</h2>
+                    <div class="video-container flex space-x-4 overflow-x-auto hide-scrollbar pb-4">
+                        <?php foreach ($recommended as $video): ?>
+                            <a href="watch.php?id=<?= $video['id'] ?>" class="video-card flex-none w-64 rounded-md overflow-hidden bg-gray-900">
+                                <div class="thumbnail-container aspect-video relative">
+                                    <img data-gif="<?= htmlspecialchars($video['preview_gif'] ?? '') ?>" src="<?= htmlspecialchars($video['thumbnail'] ?: 'assets/video-placeholder.svg') ?>" class="w-full h-full object-cover" alt="<?= htmlspecialchars($video['title']) ?>" loading="lazy">
+                                </div>
+                                <div class="info-container p-2">
+                                    <div class="text-sm font-medium truncate"><?= htmlspecialchars($video['title']) ?></div>
+                                    <div class="text-xs text-gray-400 mt-1"><?= htmlspecialchars(implode(' · ', videoTags($video['tags']))) ?></div>
+                                </div>
+                            </a>
+                        <?php endforeach; ?>
+                    </div>
+                </section>
+            <?php endif; ?>
             <!-- Continue Watching Section -->
             <?php if (!empty($continueWatching)): ?>
                 <div>

@@ -1,6 +1,7 @@
 <?php
 // scan.php
 require_once 'auth.php';
+require_once __DIR__ . '/mobile_thumbnail.php';
 // Only require login if not CLI
 if (php_sapi_name() !== 'cli') {
     requireLogin();
@@ -85,30 +86,8 @@ class Scanner {
             }
         }
 
-        // Generate Thumbnail
-        $thumbName = md5($finalFilePath) . '.jpg';
-        $thumbPath = $this->baseDir . '/thumbnails/' . $thumbName;
-        
-        // Generate GIF Preview
-        $gifName = md5($finalFilePath) . '.gif';
-        $gifPath = $this->baseDir . '/thumbnails/' . $gifName;
-        
-        if (!is_dir(dirname($thumbPath))) {
-            mkdir(dirname($thumbPath), 0755, true);
-        }
-
-        if (!file_exists($thumbPath)) {
-            $cmd = "ffmpeg -i " . escapeshellarg($finalFilePath) . " -ss 00:00:10 -vframes 1 -q:v 2 " . escapeshellarg($thumbPath) . " 2>&1";
-            exec($cmd);
-        }
-        
-        if (!file_exists($gifPath)) {
-            $cmdGif = "ffmpeg -ss 00:00:05 -t 3 -i " . escapeshellarg($finalFilePath) . " -vf \"fps=10,scale=320:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse\" " . escapeshellarg($gifPath) . " 2>&1";
-            exec($cmdGif);
-        }
-        
-        $webThumbPath = 'thumbnails/' . $thumbName;
-        $webGifPath = 'thumbnails/' . $gifName;
+        $webThumbPath = mobileVideoThumbnail($finalFilePath);
+        $webGifPath = mobileVideoPreview($finalFilePath);
 
         // Insert into DB
         $stmt = $this->db->prepare("INSERT INTO videos (title, filename, filepath, category, thumbnail, preview_gif, visibility, uploader_id) VALUES (?, ?, ?, ?, ?, ?, 'public', ?)");
