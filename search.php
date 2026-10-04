@@ -1,11 +1,13 @@
 <?php
 // search.php
 require_once 'auth.php';
+require_once __DIR__ . '/recommendations.php';
 requireLogin();
 
 $user = getCurrentUser($db);
 $query = $_GET['q'] ?? '';
 $category = $_GET['category'] ?? 'All';
+$actorId = (int)($_GET['actor'] ?? 0);
 
 // Fetch Categories for filter
 $stmt = $db->query("SELECT DISTINCT category FROM videos ORDER BY category");
@@ -16,11 +18,14 @@ $sql = "SELECT * FROM videos WHERE 1=1";
 $params = [];
 
 if (!empty($query)) {
-    $sql .= " AND (title LIKE ? OR description LIKE ? OR tags LIKE ?)";
+    $sql .= " AND (title LIKE ? OR description LIKE ? OR tags LIKE ? OR EXISTS (SELECT 1 FROM video_actors va JOIN actors a ON a.id=va.actor_id WHERE va.video_id=videos.id AND a.name LIKE ?))";
+    $params[] = "%$query%";
     $params[] = "%$query%";
     $params[] = "%$query%";
     $params[] = "%$query%";
 }
+
+if ($actorId) { $sql .= ' AND EXISTS (SELECT 1 FROM video_actors va WHERE va.video_id=videos.id AND va.actor_id=?)'; $params[]=$actorId; }
 
 if ($category !== 'All') {
     $sql .= " AND category = ?";
@@ -31,6 +36,7 @@ $sql .= " ORDER BY created_at DESC";
 $stmt = $db->prepare($sql);
 $stmt->execute($params);
 $results = $stmt->fetchAll();
+$actorOptions=availableActors($db,(int)$user['id']);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -79,6 +85,10 @@ $results = $stmt->fetchAll();
                     <?php endforeach; ?>
                 </select>
             </div>
+            <div class="w-full md:w-64">
+                <label class="block text-sm text-gray-400 mb-2">Actor</label>
+                <select name="actor" class="w-full bg-gray-800 border border-gray-700 rounded px-4 py-2 text-white"><option value="0">All actors</option><?php foreach($actorOptions as $actor):?><option value="<?=(int)$actor['id']?>" <?=$actorId===(int)$actor['id']?'selected':''?>><?=htmlspecialchars($actor['name'])?></option><?php endforeach;?></select>
+            </div>
             <button type="submit" class="px-6 py-2 bg-red-600 hover:bg-red-700 rounded text-white font-bold transition">Search</button>
         </form>
 
@@ -99,6 +109,8 @@ $results = $stmt->fetchAll();
                         <div class="list-info p-3">
                             <h3 class="font-bold text-white truncate"><?= htmlspecialchars($video['title']) ?></h3>
                             <p class="text-xs text-gray-400 mt-1"><?= htmlspecialchars($video['category']) ?></p>
+                            <?php $actorLabel=videoActorLabel($db,(int)$video['id']); if($actorLabel):?><p class="text-[11px] text-gray-500 mt-1">Cast: <?=htmlspecialchars($actorLabel)?></p><?php endif;?>
+                            <?php $cardTags=array_slice(videoTags($video['tags']??'[]'),0,3); if($cardTags): ?><div class="flex flex-wrap gap-1.5 mt-2"><?php foreach($cardTags as $tag): ?><span class="rounded-full bg-gray-800 px-2 py-0.5 text-[11px] text-gray-300"><?=htmlspecialchars($tag)?></span><?php endforeach; ?></div><?php endif; ?>
                         </div>
                     </a>
                 <?php endforeach; ?>

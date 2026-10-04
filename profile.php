@@ -1,5 +1,6 @@
 <?php
 require_once 'auth.php';
+require_once __DIR__ . '/recommendations.php';
 requireLogin();
 
 $user = getCurrentUser($db);
@@ -133,6 +134,7 @@ $myVideos = $stmt->fetchAll();
                             </a>
                             <div class="p-4">
                                 <h3 class="font-bold text-sm truncate mb-1"><?= htmlspecialchars($video['title']) ?></h3>
+                                <?php $actorLabel=videoActorLabel($db,(int)$video['id']); if($actorLabel): ?><p class="text-[11px] text-gray-500 mb-1 truncate">Cast: <?=htmlspecialchars($actorLabel)?></p><?php endif; ?>
                                 <p class="text-[11px] text-gray-500 mb-4"><?= number_format($video['views']) ?> views • <?= date('M d', strtotime($video['created_at'])) ?></p>
                                 <div class="flex gap-2">
                                     <a href="edit_video.php?id=<?= $video['id'] ?>" class="flex-1 bg-white/5 hover:bg-white/10 text-white text-[10px] font-bold py-2 rounded text-center uppercase">Edit</a>

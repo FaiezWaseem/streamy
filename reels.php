@@ -1,6 +1,7 @@
 <?php
 // reels.php
 require_once 'auth.php';
+require_once __DIR__ . '/recommendations.php';
 requireLogin();
 
 // Fetch random videos
@@ -111,6 +112,7 @@ $videos = $stmt->fetchAll();
                 <!-- Video Player -->
                 <video 
                     src="stream.php?id=<?= $video['id'] ?>" 
+                    preload="none"
                     loop 
                     playsinline
                     class="w-full h-full"
@@ -131,6 +133,7 @@ $videos = $stmt->fetchAll();
                 <!-- Overlay Info -->
                 <div class="absolute bottom-20 left-4 right-16 z-20 pointer-events-none p-4 rounded-lg bg-black/30 backdrop-blur-sm">
                     <h3 class="font-bold text-lg drop-shadow-md text-white"><?= htmlspecialchars($video['title'] ?? '') ?></h3>
+                    <?php $actorLabel=videoActorLabel($db,(int)$video['id']); if($actorLabel): ?><p class="text-xs font-medium text-gray-100 drop-shadow-md mt-1">Cast: <?=htmlspecialchars($actorLabel)?></p><?php endif; ?>
                     <p class="text-sm text-gray-200 drop-shadow-md line-clamp-2"><?= htmlspecialchars($video['description'] ?? '') ?></p>
                 </div>
 
@@ -400,6 +403,7 @@ $videos = $stmt->fetchAll();
             div.innerHTML = `
                 <video 
                     src="stream.php?id=${video.id}" 
+                    preload="none"
                     loop 
                     playsinline
                     class="w-full h-full object-cover md:object-contain"
@@ -420,6 +424,7 @@ $videos = $stmt->fetchAll();
                 <!-- Overlay Info -->
                 <div class="absolute bottom-20 left-4 right-16 z-20 pointer-events-none p-4 rounded-lg bg-black/30 backdrop-blur-sm">
                     <h3 class="font-bold text-lg drop-shadow-md text-white">${escapeHtml(video.title)}</h3>
+                    ${(video.actors || []).length ? `<p class="text-xs font-medium text-gray-100 drop-shadow-md mt-1">Cast: ${escapeHtml(video.actors.slice(0, 2).map(actor => actor.name).join(' · '))}${video.actors.length > 2 ? ` +${video.actors.length - 2}` : ''}</p>` : ''}
                     <p class="text-sm text-gray-200 drop-shadow-md line-clamp-2">${escapeHtml(video.description || '')}</p>
                 </div>
 

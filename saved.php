@@ -1,5 +1,6 @@
 <?php
 require_once 'auth.php';
+require_once __DIR__ . '/recommendations.php';
 requireLogin();
 
 $user = getCurrentUser($db);
@@ -66,6 +67,7 @@ $savedVideos = $stmt->fetchAll();
                                     <svg class="w-5 h-5" fill="currentColor" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/></svg>
                                 </button>
                             </div>
+                            <?php $actorLabel=videoActorLabel($db,(int)$video['id']); if($actorLabel): ?><p class="text-[11px] text-gray-500 mb-2">Cast: <?=htmlspecialchars($actorLabel)?></p><?php endif; ?>
                             <p class="text-xs text-gray-400"><?= date('M d, Y', strtotime($video['created_at'])) ?> • <?= $video['views'] ?> views</p>
                         </div>
                     </div>

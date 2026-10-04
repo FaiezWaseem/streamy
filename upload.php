@@ -116,7 +116,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $webGifPath = mobileVideoPreview($targetFilePath);
 
                 $stmt = $db->prepare("INSERT INTO videos (title, description, filename, filepath, category, thumbnail, preview_gif, visibility, uploader_id, tags) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-                if ($stmt->execute([$title, $description, $filename, $targetFilePath, $category, $webThumbPath, $webGifPath, $visibility, $user['id'], json_encode(videoTags($_POST['tags'] ?? ''))])) {
+                $uploadedTags = videoTags($_POST['tags'] ?? '');
+                if ($stmt->execute([$title, $description, $filename, $targetFilePath, $category, $webThumbPath, $webGifPath, $visibility, $user['id'], json_encode($uploadedTags)])) {
+                    rememberAvailableTags($db, (int)$user['id'], $uploadedTags);
+                    saveVideoActors($db, (int)$user['id'], (int)$db->lastInsertId(), $_POST['actor_ids'] ?? []);
                     $success = "Video uploaded successfully!";
                 } else {
                     $error = "Database error.";
@@ -239,8 +242,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                     <div>
                         <label class="block text-sm text-gray-400 mb-2">Tags</label>
-                        <input name="tags" placeholder="funny, thriller, english" class="w-full bg-gray-800 border border-gray-700 rounded px-4 py-3 text-white">
+                        <input name="tags" list="tag-suggestions" placeholder="funny, thriller, english" class="w-full bg-gray-800 border border-gray-700 rounded px-4 py-3 text-white">
+                        <datalist id="tag-suggestions"><?php foreach (availableTags($db, (int)$user['id']) as $tag): ?><option value="<?= htmlspecialchars($tag) ?>"><?php endforeach; ?></datalist>
                         <p class="text-xs text-gray-500 mt-2">Separate tags with commas.</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-400 mb-2">Actors</label>
+                        <div class="flex flex-wrap gap-2"><?php foreach (availableActors($db, (int)$user['id']) as $actor): ?><label class="flex items-center gap-2 bg-gray-800 rounded-full px-3 py-2"><input type="checkbox" name="actor_ids[]" value="<?=(int)$actor['id']?>"><span><?=htmlspecialchars($actor['name'])?></span></label><?php endforeach; ?></div>
+                        <a class="text-xs text-red-400 mt-2 inline-block" href="actors.php">Manage actors</a>
                     </div>
                     <!-- Thumbnail -->
                     <div>

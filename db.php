@@ -89,6 +89,37 @@ try {
         video_id INTEGER NOT NULL, total_bytes INTEGER NOT NULL,
         PRIMARY KEY(user_id,upload_id)
     )");
+    $db->exec("CREATE TABLE IF NOT EXISTS available_tags (
+        user_id INTEGER NOT NULL,
+        tag TEXT NOT NULL COLLATE NOCASE,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY(user_id, tag)
+    )");
+    $db->exec("CREATE TABLE IF NOT EXISTS actors (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        name TEXT NOT NULL COLLATE NOCASE,
+        profile_image TEXT,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(user_id,name)
+    )");
+    $db->exec("CREATE TABLE IF NOT EXISTS video_actors (
+        video_id INTEGER NOT NULL,
+        actor_id INTEGER NOT NULL,
+        user_id INTEGER NOT NULL,
+        PRIMARY KEY(video_id,actor_id)
+    ); CREATE INDEX IF NOT EXISTS video_actors_actor ON video_actors(actor_id,video_id)");
+    $db->exec("CREATE TABLE IF NOT EXISTS cloud_interest_events (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        event_id TEXT NOT NULL,
+        video_ref TEXT NOT NULL DEFAULT 'local',
+        tags TEXT NOT NULL DEFAULT '[]',
+        watched_seconds REAL NOT NULL,
+        duration REAL NOT NULL DEFAULT 0,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(user_id,event_id)
+    ); CREATE INDEX IF NOT EXISTS cloud_interest_user_date ON cloud_interest_events(user_id,created_at DESC)");
 
     // Add columns if they don't exist (migrations)
     $columns = $db->query("PRAGMA table_info(videos)")->fetchAll(PDO::FETCH_COLUMN, 1);

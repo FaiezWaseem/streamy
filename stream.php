@@ -1,93 +1,124 @@
 <?php
-// stream.php
-require_once 'auth.php';
+require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/mobile_auth.php';
 
-// Close session immediately to prevent blocking other requests (like progress updates)
-// The session is only needed to verify login status initially.
-session_write_close();
+// Do not keep the PHP session lock while the client is buffering the stream.
+if (session_status() === PHP_SESSION_ACTIVE) {
+    session_write_close();
+}
 
 if (!isLoggedIn() && !mobileCurrentUserId($db)) {
     http_response_code(403);
-    die('Unauthorized');
+    exit('Unauthorized');
 }
 
-if (!isset($_GET['id'])) {
+$id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
+if (!$id) {
     http_response_code(400);
-    die('No video ID specified.');
+    exit('No video ID specified.');
 }
 
-$id = $_GET['id'];
 $viewerId = mobileCurrentUserId($db);
-if (isLoggedIn()) $viewerId = (int)$_SESSION['user_id'];
-$stmt = $db->prepare("SELECT filepath, filename FROM videos WHERE id = ? AND (visibility = 'public' OR uploader_id = ?)");
+if (isLoggedIn()) {
+    $viewerId = (int) $_SESSION['user_id'];
+}
+
+$stmt = $db->prepare("SELECT filepath FROM videos WHERE id = ? AND (visibility = 'public' OR uploader_id = ?)");
 $stmt->execute([$id, $viewerId]);
-$video = $stmt->fetch();
-
-if (!$video || !file_exists($video['filepath'])) {
+$file = $stmt->fetchColumn();
+if (!$file || !is_file($file) || !is_readable($file)) {
     http_response_code(404);
-    die('Video not found.');
+    exit('Video not found.');
 }
 
-$file = $video['filepath'];
-$fp = @fopen($file, 'rb');
-$size = filesize($file); // File size
-$length = $size;           // Content length
-$start = 0;               // Start byte
-$end = $size - 1;         // End byte
+$size = filesize($file);
+if ($size === false || $size < 1) {
+    http_response_code(404);
+    exit('Video is empty.');
+}
 
-$mimeType = function_exists('mime_content_type') ? mime_content_type($file) : false;
-header('Content-type: ' . ($mimeType ?: 'application/octet-stream'));
-header("Accept-Ranges: bytes");
+$start = 0;
+$end = $size - 1;
+$status = 200;
+$rangeHeader = $_SERVER['HTTP_RANGE'] ?? '';
 
-if (isset($_SERVER['HTTP_RANGE'])) {
-    $c_start = $start;
-    $c_end = $end;
-    
-    list(, $range) = explode('=', $_SERVER['HTTP_RANGE'], 2);
-    if (strpos($range, ',') !== false) {
-        header('HTTP/1.1 416 Requested Range Not Satisfiable');
-        header("Content-Range: bytes $start-$end/$size");
+// Support normal and suffix byte ranges so browsers can start playback and
+// seek without downloading the entire video first.
+if ($rangeHeader !== '') {
+    if (!preg_match('/^bytes=(\d*)-(\d*)$/', trim($rangeHeader), $matches)) {
+        header("Content-Range: bytes */{$size}");
+        http_response_code(416);
         exit;
     }
-    
-    if ($range == '-') {
-        $c_start = $size - substr($range, 1);
+
+    if ($matches[1] === '' && $matches[2] === '') {
+        header("Content-Range: bytes */{$size}");
+        http_response_code(416);
+        exit;
+    }
+
+    if ($matches[1] === '') {
+        $suffixLength = (int) $matches[2];
+        if ($suffixLength < 1) {
+            header("Content-Range: bytes */{$size}");
+            http_response_code(416);
+            exit;
+        }
+        $start = max(0, $size - $suffixLength);
     } else {
-        $range = explode('-', $range);
-        $c_start = $range[0];
-        $c_end = (isset($range[1]) && is_numeric($range[1])) ? $range[1] : $size;
+        $start = (int) $matches[1];
+        if ($matches[2] !== '') {
+            $end = (int) $matches[2];
+        }
     }
-    
-    $c_end = ($c_end > $end) ? $end : $c_end;
-    
-    if ($c_start > $c_end || $c_start > $size - 1 || $c_end >= $size) {
-        header('HTTP/1.1 416 Requested Range Not Satisfiable');
-        header("Content-Range: bytes $start-$end/$size");
+
+    if ($start >= $size || $end < $start) {
+        header("Content-Range: bytes */{$size}");
+        http_response_code(416);
         exit;
     }
-    
-    $start = $c_start;
-    $end = $c_end;
-    $length = $end - $start + 1;
-    
-    fseek($fp, $start);
-    header('HTTP/1.1 206 Partial Content');
+
+    $end = min($end, $size - 1);
+    $status = 206;
 }
 
-header("Content-Range: bytes $start-$end/$size");
-header("Content-Length: $length");
+$length = $end - $start + 1;
+$mimeType = function_exists('mime_content_type') ? mime_content_type($file) : false;
+header('Content-Type: ' . ($mimeType ?: 'application/octet-stream'));
+header('Accept-Ranges: bytes');
+header('Content-Length: ' . $length);
+header('Cache-Control: private, no-transform');
+header('X-Accel-Buffering: no');
+if ($status === 206) {
+    http_response_code(206);
+    header("Content-Range: bytes {$start}-{$end}/{$size}");
+}
 
-$buffer = 1024 * 8;
-while (!feof($fp) && ($p = ftell($fp)) <= $end) {
-    if ($p + $buffer > $end) {
-        $buffer = $end - $p + 1;
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'HEAD') {
+    exit;
+}
+
+// Clear PHP output buffers and stream bounded chunks instead of allowing a
+// hosting-level PHP buffer to accumulate a large file before sending it.
+while (ob_get_level() > 0) {
+    ob_end_clean();
+}
+@ini_set('zlib.output_compression', '0');
+$handle = fopen($file, 'rb');
+if ($handle === false || fseek($handle, $start) !== 0) {
+    http_response_code(500);
+    exit;
+}
+
+$remaining = $length;
+while ($remaining > 0 && !connection_aborted()) {
+    $chunk = fread($handle, min(1024 * 256, $remaining));
+    if ($chunk === false || $chunk === '') {
+        break;
     }
-    set_time_limit(0);
-    echo fread($fp, $buffer);
+    echo $chunk;
+    $remaining -= strlen($chunk);
     flush();
 }
 
-fclose($fp);
-exit;
-?>
+fclose($handle);

@@ -1,6 +1,7 @@
 <?php
 // api.php - Unified endpoint for likes and comments
 require_once 'auth.php';
+require_once __DIR__ . '/recommendations.php';
 requireLogin();
 
 header('Content-Type: application/json');
@@ -120,6 +121,8 @@ if ($method === 'POST') {
         $stmt = $db->prepare($sql);
         $stmt->execute($params);
         $videos = $stmt->fetchAll();
+        foreach ($videos as &$video) $video['actors'] = videoActors($db, (int)$video['id']);
+        unset($video);
         
         echo json_encode($videos);
     }

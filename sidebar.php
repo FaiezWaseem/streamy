@@ -41,6 +41,8 @@
         <a href="index.php" class="block px-4 py-3 rounded <?= basename($_SERVER['PHP_SELF']) == 'index.php' ? 'bg-gray-800 text-white font-medium' : 'text-gray-400 hover:text-white hover:bg-gray-800' ?>">Home</a>
         <a href="channels.php" class="block px-4 py-3 rounded <?= basename($_SERVER['PHP_SELF']) == 'channels.php' ? 'bg-gray-800 text-white font-medium' : 'text-gray-400 hover:text-white hover:bg-gray-800' ?>">Channels</a>
         <a href="reels.php" class="block px-4 py-3 rounded <?= basename($_SERVER['PHP_SELF']) == 'reels.php' ? 'bg-gray-800 text-white font-medium' : 'text-gray-400 hover:text-white hover:bg-gray-800' ?>">Reels</a>
+        <a href="tags.php" class="block px-4 py-3 rounded <?= basename($_SERVER['PHP_SELF']) == 'tags.php' ? 'bg-gray-800 text-white font-medium' : 'text-gray-400 hover:text-white hover:bg-gray-800' ?>">Tags</a>
+        <a href="actors.php" class="block px-4 py-3 rounded <?= basename($_SERVER['PHP_SELF']) == 'actors.php' ? 'bg-gray-800 text-white font-medium' : 'text-gray-400 hover:text-white hover:bg-gray-800' ?>">Actors</a>
         <a href="profile.php" class="block px-4 py-3 rounded <?= basename($_SERVER['PHP_SELF']) == 'profile.php' ? 'bg-gray-800 text-white font-medium' : 'text-gray-400 hover:text-white hover:bg-gray-800' ?>">Profile</a>
     </nav>
     <div class="p-4 border-t border-gray-800">
@@ -88,9 +90,17 @@
             </div>
             <span class="mt-1">Upload</span>
         </a>
-            <a href="reels.php" class="flex flex-col items-center justify-center w-full h-full text-xs <?= basename($_SERVER['PHP_SELF']) == 'reels.php' ? 'text-white' : 'text-gray-500' ?>">
+        <a href="reels.php" class="flex flex-col items-center justify-center w-full h-full text-xs <?= basename($_SERVER['PHP_SELF']) == 'reels.php' ? 'text-white' : 'text-gray-500' ?>">
             <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
             Reels
+        </a>
+        <a href="tags.php" class="flex flex-col items-center justify-center w-full h-full text-xs <?= basename($_SERVER['PHP_SELF']) == 'tags.php' ? 'text-white' : 'text-gray-500' ?>">
+            <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M3 11l8-8h8a2 2 0 012 2v8l-8 8-10-10z"/></svg>
+            Tags
+        </a>
+        <a href="actors.php" class="flex flex-col items-center justify-center w-full h-full text-xs <?= basename($_SERVER['PHP_SELF']) == 'actors.php' ? 'text-white' : 'text-gray-500' ?>">
+            <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a4 4 0 00-5-3.87M9 20H2v-2a4 4 0 015-3.87m9-7a4 4 0 11-8 0 4 4 0 018 0zm6 3a4 4 0 10-8 0"/></svg>
+            Actors
         </a>
         <a href="profile.php" class="flex flex-col items-center justify-center w-full h-full text-xs <?= basename($_SERVER['PHP_SELF']) == 'profile.php' ? 'text-white' : 'text-gray-500' ?>">
             <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>

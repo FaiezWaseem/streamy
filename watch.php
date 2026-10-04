@@ -21,6 +21,7 @@ if ($video['visibility'] === 'private' && $video['uploader_id'] != $user['id']) 
 }
 
 require_once __DIR__ . '/recommendations.php';
+$videoActorList = videoActors($db, (int)$videoId);
 $related = recommendedVideos($db, (int)$user['id'], 10, $video);
 
 // Fetch Comments
@@ -102,6 +103,7 @@ $isLiked = (bool)$stmt->fetch();
                                 <span class="text-xs bg-gray-800 rounded-full px-3 py-1"><?= htmlspecialchars($tag) ?></span>
                             <?php endforeach; ?>
                         </div>
+                        <?php if ($videoActorList): ?><div class="flex flex-wrap items-center gap-3 mb-3"><?php foreach ($videoActorList as $actor): ?><a href="search.php?actor=<?=(int)$actor['id']?>" class="flex items-center gap-2 bg-gray-800 rounded-full px-2 py-1 text-sm hover:bg-gray-700"><?php if($actor['profile_image']):?><img src="<?=htmlspecialchars($actor['profile_image'])?>" class="w-7 h-7 rounded-full object-cover" alt=""><?php endif;?><?=htmlspecialchars($actor['name'])?></a><?php endforeach;?></div><?php endif;?>
                         <p class="text-gray-300"><?= nl2br(htmlspecialchars($video['description'] ?? 'No description.')) ?></p>
                     </div>
                 </div>
@@ -154,6 +156,7 @@ $isLiked = (bool)$stmt->fetch();
                         <div class="flex-1 min-w-0">
                             <h4 class="font-bold text-sm truncate group-hover:text-red-500 transition"><?= htmlspecialchars($rv['title']) ?></h4>
                             <p class="text-xs text-gray-500 mt-1"><?= htmlspecialchars($rv['category']) ?></p>
+                            <?php $relatedActorLabel=videoActorLabel($db,(int)$rv['id']); if($relatedActorLabel): ?><p class="text-[11px] text-gray-500 mt-1 truncate">Cast: <?=htmlspecialchars($relatedActorLabel)?></p><?php endif; ?>
                         </div>
                     </a>
                 <?php endforeach; ?>

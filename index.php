@@ -137,6 +137,7 @@ if ($categoryFilter) {
                                 <div class="info-container p-2">
                                     <div class="text-sm font-medium truncate"><?= htmlspecialchars($video['title']) ?></div>
                                     <div class="text-xs text-gray-400 mt-1"><?= htmlspecialchars(implode(' · ', videoTags($video['tags']))) ?></div>
+                                    <?php $actorLabel=videoActorLabel($db,(int)$video['id']); if($actorLabel): ?><div class="text-[11px] text-gray-500 mt-1 truncate">Cast: <?=htmlspecialchars($actorLabel)?></div><?php endif; ?>
                                 </div>
                             </a>
                         <?php endforeach; ?>
@@ -167,6 +168,7 @@ if ($categoryFilter) {
                                 <div class="info-container p-2">
                                     <div class="text-sm font-medium truncate text-gray-200 group-hover:text-white"><?= htmlspecialchars($video['title']) ?></div>
                                     <div class="text-xs text-gray-500 mt-1"><?= htmlspecialchars($video['category']) ?></div>
+                                    <?php $actorLabel=videoActorLabel($db,(int)$video['id']); if($actorLabel): ?><div class="text-[11px] text-gray-500 mt-1 truncate">Cast: <?=htmlspecialchars($actorLabel)?></div><?php endif; ?>
                                 </div>
                             </a>
                         <?php endforeach; ?>
@@ -204,6 +206,7 @@ if ($categoryFilter) {
                                 </div>
                                 <div class="info-container p-2">
                                     <div class="text-sm font-medium truncate text-gray-200 group-hover:text-white"><?= htmlspecialchars($video['title']) ?></div>
+                                    <?php $actorLabel=videoActorLabel($db,(int)$video['id']); if($actorLabel): ?><div class="text-[11px] text-gray-500 mt-1 truncate">Cast: <?=htmlspecialchars($actorLabel)?></div><?php endif; ?>
                                 </div>
                             </a>
                         <?php endforeach; ?>

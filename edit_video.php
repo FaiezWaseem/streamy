@@ -27,6 +27,8 @@ if (!$video || $video['uploader_id'] != $user['id']) {
 // Fetch Categories
 $stmt = $db->query("SELECT DISTINCT category FROM videos ORDER BY category");
 $categories = $stmt->fetchAll(PDO::FETCH_COLUMN);
+$actors = availableActors($db, (int)$user['id']);
+$selectedActorIds = array_map('intval', array_column(videoActors($db, (int)$videoId), 'id'));
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $title = trim($_POST['title']);
@@ -51,6 +53,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         $stmt = $db->prepare("UPDATE videos SET title = ?, description = ?, category = ?, visibility = ?, tags = ? WHERE id = ?");
         if ($stmt->execute([$title, $description, $category, $visibility, json_encode($tags), $videoId])) {
+            rememberAvailableTags($db, (int)$user['id'], $tags);
+            $selectedActorIds = array_map('intval', array_column(saveVideoActors($db, (int)$user['id'], (int)$videoId, $_POST['actor_ids'] ?? []), 'id'));
             $success = "Video updated successfully.";
             // Refresh video data
             $video['title'] = $title;
@@ -119,8 +123,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 <div>
                     <label class="block text-sm text-gray-400 mb-2">Tags</label>
-                    <input name="tags" value="<?= htmlspecialchars(implode(', ', videoTags($video['tags']))) ?>" placeholder="funny, thriller, english" class="w-full bg-gray-800 border border-gray-700 rounded px-4 py-3 text-white">
+                    <input name="tags" list="tag-suggestions" value="<?= htmlspecialchars(implode(', ', videoTags($video['tags']))) ?>" placeholder="funny, thriller, english" class="w-full bg-gray-800 border border-gray-700 rounded px-4 py-3 text-white">
+                    <datalist id="tag-suggestions"><?php foreach (availableTags($db, (int)$user['id']) as $tag): ?><option value="<?= htmlspecialchars($tag) ?>"><?php endforeach; ?></datalist>
                     <p class="text-xs text-gray-500 mt-2">Separate tags with commas. Up to 20 tags per video.</p>
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-400 mb-2">Actors</label>
+                    <div class="flex flex-wrap gap-2"><?php foreach ($actors as $actor): ?><label class="flex items-center gap-2 bg-gray-800 rounded-full px-3 py-2"><input type="checkbox" name="actor_ids[]" value="<?=(int)$actor['id']?>" <?=in_array((int)$actor['id'],$selectedActorIds,true)?'checked':''?>><span><?=htmlspecialchars($actor['name'])?></span></label><?php endforeach; ?></div>
+                    <?php if (!$actors): ?><p class="text-xs text-gray-500 mt-2">Create actor profiles from the Actors page first.</p><?php endif; ?>
+                    <a class="text-xs text-red-400 mt-2 inline-block" href="actors.php">Manage actors</a>
                 </div>
                 <!-- Description -->
                 <div>
